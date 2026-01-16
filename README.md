@@ -31,7 +31,7 @@ Clone the repo into your Catkin folder.
 1) activate the conda environment
 {conda activate pickup}
 
-2) run the Hello-Robot calibration code {Stretch_robot_home.py} Remeber to remove the clip!
+2) run the Hello-Robot calibration code {stretch_robot_home.py} Remeber to remove the clip!
 
 3) Run the launch file  # If you do not need an interface comment it out in the launch file!
 {roslaunch Expressive_Eyes expression.launch}
@@ -40,6 +40,8 @@ Clone the repo into your Catkin folder.
 {rosrun rosserial_python serial_node.py /dev/ttyACM2}
 
 *Disclaimer: The /dev/ttyACM2 corresponds to the USB port the Arduino was connected to. It might be different for you. If it does not work run **dmesg | grep tty** to figure out the TTY device *
+
+Remeber to put the clip back on before shutdown!!
 
 **Controls**
 
