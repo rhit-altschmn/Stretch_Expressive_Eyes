@@ -408,8 +408,6 @@ void loop() {
  
 
 
-
-
 // --------------------------------------------- Manipulation Eye States ------------------------------------------
 void baseEyesMa(){
   strip.clear();
@@ -630,7 +628,6 @@ void sadEyesMa(){
   strip.setPixelColor(121, strip.Color(0, 0, 255));
   strip.show(); 
 }
-
 void closeEyesMa(){
   strip.clear();
   strip.setPixelColor(11, strip.Color(0, 0, 255));
@@ -679,6 +676,8 @@ void sleepEyesMa(){
   strip.setPixelColor(116, strip.Color(0, 0, 150));
   strip.show();
 }
+
+
 void slightRightMa(){
   strip.clear();
   strip.setPixelColor(2, strip.Color(0, 0, 255));
@@ -1303,6 +1302,8 @@ void eyesRightMa(){
   strip.setPixelColor(125, strip.Color(0, 0, 255)); 
   strip.show();
 }
+
+//----------------------------------------- Transition Eyes -------------------------------------------------
 void transitionEyes() {
   strip.clear();
   strip.setPixelColor(66, strip.Color(0, 0, 255));
