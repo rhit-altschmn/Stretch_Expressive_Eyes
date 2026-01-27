@@ -754,37 +754,37 @@ class eyedirection(QWidget):
         if manip:
             if vert >= vDB and vert < vBU and horiz <= MaLB and horiz > MaBR:
                 # print('eyes center')
-                self.a = str("eyes center")
+                self.a = str("Side: eyes center")
             elif vert >= vBU and vert < vUFu and horiz <= MaLB and horiz > MaBR:
                 # print("slight up")
-                self.a = str("slight up")
+                self.a = str("Side: slight up")
             elif vert >= vUFu and vert <= upper_limit and horiz <= MaFlL and horiz > MaRFr:
                 # print("eyes up")
-                self.a = str("eyes up")
+                self.a = str("Side: eyes up")
             elif vert >= vFdD and vert < vDB and horiz <= MaLB and horiz > MaBR:
                 # print("slight down")
-                self.a = str("slight down")
+                self.a = str("Side: slight down")
             elif vert >= lower_limit and vert < vFdD and horiz <= MaFlL and horiz > MaRFr:
                 # print("eyes down")
-                self.a = str("eyes down")
+                self.a = str("Side: eyes down")
             elif vert >= vDB and vert < vBU and horiz <= MaFlL and horiz > MaLB:
                 # print("slight right")
-                self.a = str("slight right")
+                self.a = str("Side: slight left")
             elif vert >= vFdD and vert <= vUFu and horiz >= MaFlL and horiz < MoFr:
                 # print("eyes right")
-                self.a = str("eyes right")
+                self.a = str("Side: eyes left")
             elif vert >= vDB and vert < vBU and horiz <= MaBR and horiz > MaRFr:
                 # print("slight left")
-                self.a = str("slight left")
+                self.a = str("Side: slight right")
             elif vert >= vFdD and vert <= vUFu and horiz <= MaRFr and horiz > MaFr:
                 # print("eyes left")
-                self.a = str("eyes left")
+                self.a = str("Side: eyes right")
             elif vert >= vFdD and vert < vDB and horiz <= MaBR and horiz > MaRFr or vert >= lower_limit and vert < vFdD and horiz <= MaRFr and horiz > MaFr:
                 # print("eyes down&left")
-                self.a = str("eyes down&left")
+                self.a = str("Side: eyes down right")
             elif (vDB > vert >= vFdD) or (vFdD > vert >= lower_limit and MaFlL < horiz <= MoFr):
                 # print("eyes down&right ")
-                self.a = str("eyes down&right")
+                self.a = str("Side: eyes down left")
             return self.a
         if not manip:
             if vert >= vDB and vert < vBU and horiz <= MoLB and horiz > MoBR:
@@ -804,28 +804,28 @@ class eyedirection(QWidget):
                 self.a = str("Front: Eyes down")
             elif vert >= vDB and vert < vBU and horiz <= MoFlL and horiz > MoLB:
                 # print("Front: Slight Right")
-                self.a = str("Front: Slight Right")
+                self.a = str("Front: Slight left")
             elif vert >= vFdD and vert <= vUFu and horiz >= MoFlL and horiz <= 1.67:
                 # print("Front: Eyes right")
-                self.a = str("Front: Eyes right")
+                self.a = str("Front: Eyes left")
             elif vert >= vDB and vert < vBU and horiz <= MoBR and horiz > MoRFr:
                 # print("Front: Slight left")
-                self.a = str("Front: Slight left")
+                self.a = str("Front: Slight riht")
             elif vert >= vFdD and vert <= vUFu and horiz <= MoRFr and horiz > MoFr:
                 # print("Front: Eyes Left")
-                self.a = str("Front: Eyes Left")
+                self.a = str("Front: Eyes right")
             elif (vert >= vBU and vert < vUFu and horiz <= MoBR and horiz > MoRFr) or (vert >= vUFu and vert < upper_limit and horiz <= MoRFr and horiz > MoFr ):
                 # print("Front: Eyes up&left")
-                self.a = str("Front: Eyes up&left")
+                self.a = str("Front: Eyes up right")
             elif  (vert >= vBU and vert < vUFu and horiz <= MoFlL and horiz > MoLB) or (vert >= vUFu and vert < upper_limit and horiz >= MoFlL and horiz <= 1.67):
                 # print("Front: Eyes up&right")
-                self.a = str("Front: Eyes up&right")
+                self.a = str("Front: Eyes up left")
             elif (vert >= vFdD and vert < vDB and horiz <= MoBR and horiz > MoRFr) or (vert >= lower_limit and vert < vFdD and horiz <= MoRFr and horiz > MoFr):
                 # print("Front: Down&Left")
-                self.a = str("Front: Down&Left")
+                self.a = str("Front: Down right")
             elif (vert >= vFdD and vert < vDB and horiz <= MoFlL and horiz > MoLB) or (vert >= lower_limit and vert < vFdD and horiz >= MoFlL and horiz <= 1.67):
                 # print("Front:Down&Right")
-                self.a = str("Front:Down&Right")
+                self.a = str("Front: Down left")
             return self.a
         
 class CameraButtonSet(QWidget):
