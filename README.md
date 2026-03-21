@@ -34,7 +34,7 @@ Clone the repo into your Catkin folder.
 2) run the Hello-Robot calibration code {stretch_robot_home.py} Remeber to remove the clip!
 
 3) Run the launch file  # If you do not need an interface comment it out in the launch file!
-{roslaunch Expressive_Eyes expression.launch or roslaunch Expressive_Eyes expression_new.launch}
+{roslaunch Expressive_Eyes expression.launch or roslaunch new_expressive_eyes expression.launch}
 
 4) In a new terminal window run the serial communication (allows you to collect information from the USB port)
 {rosrun rosserial_python serial_node.py /dev/ttyACM2}
