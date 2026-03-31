@@ -1158,6 +1158,66 @@ class MainWindow(QMainWindow):
 
     def change_video_mode(self, mode):
         self.vid_widget.set_mode(mode)
+    
+    def keyPressEvent(self, event):
+        """Global keyboard handler that works regardless of current page"""
+        if event.isAutoRepeat():
+            return
+        
+        key = event.key()
+        
+        # Navigation mode controls
+        if self.current_mode == "navigation":
+            nav_controller = self.navigation_page.vid_widget.available_modes["navigation"]["controller"]
+            cam_controller = self.navigation_page.cam_buttons.controller
+            
+            if key == Qt.Key_W:
+                nav_controller.go_forwards()
+            elif key == Qt.Key_S:
+                nav_controller.go_backwards()
+            elif key == Qt.Key_A:
+                nav_controller.turn_left()
+            elif key == Qt.Key_D:
+                nav_controller.turn_right()
+            elif key == Qt.Key_I:
+                cam_controller.tilt_up()
+            elif key == Qt.Key_K:
+                cam_controller.tilt_down()
+            elif key == Qt.Key_J:
+                cam_controller.turn_left()
+            elif key == Qt.Key_L:
+                cam_controller.turn_right()
+        
+        # Manipulation mode controls
+        elif self.current_mode == "manipulation":
+            arm_controller = self.manipulation_page.main_camera.available_modes["arm"]["controller"]
+            grip_controller = self.manipulation_page.arm_camera.available_modes["gripper"]["controller"]
+            cam_controller = self.manipulation_page.cam_buttons.controller
+            
+            if key == Qt.Key_W:
+                arm_controller.move_up()
+            elif key == Qt.Key_S:
+                arm_controller.move_down()
+            elif key == Qt.Key_A:
+                arm_controller.extend()
+            elif key == Qt.Key_D:
+                arm_controller.retract()
+            elif key == Qt.Key_Q:
+                grip_controller.open_gripper()
+            elif key == Qt.Key_E:
+                grip_controller.close_gripper()
+            elif key == Qt.Key_Z:
+                grip_controller.turn_left()
+            elif key == Qt.Key_C:
+                grip_controller.turn_right()
+            elif key == Qt.Key_I:
+                cam_controller.tilt_up()
+            elif key == Qt.Key_K:
+                cam_controller.tilt_down()
+            elif key == Qt.Key_J:
+                cam_controller.turn_left()
+            elif key == Qt.Key_L:
+                cam_controller.turn_right()
 
 if __name__=="__main__":
     #logging.basicConfig(format='%(levelname)s %(asctime)s: %(message)s',filename=f"{os.path.dirname(os.path.abspath(__file__))}/logs/qt_interface_{time.strftime('%y_%m_%d:%H_%M_%S', time.localtime(time.time()))}.log", level=logging.INFO, datefmt="%y-%m-%d:%h-%m-%s")
