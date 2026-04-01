@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import typing
 import rospy
 import sys
@@ -11,7 +11,7 @@ import actionlib
 import datetime
 import threading
 import keyboard
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, String
 from sensor_msgs.msg import Image, JointState
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -829,12 +829,88 @@ class CameraButtonSet(QWidget):
         self.setLayout(self.main_layout)
         self.setFixedSize(300, 300)
 
-class KeyboardCommand():
-    def __init__(self):
-        self.nav_controller = NavigationController(parent=self)
-        self.arm_controller = ArmController(parent=self)
-        self.grip_controller = GripperController(parent=self)
-        self.cam_controller = CameraController(parent=self)
+class KeyboardInputListener:
+    def __init__(self, nav_controller=None, arm_controller=None, grip_controller=None, cam_controller=None):
+        """
+        Initialize keyboard input listener
+        
+        Args:
+            nav_controller: NavigationController instance
+            arm_controller: ArmController instance
+            grip_controller: GripperController instance
+            cam_controller: CameraController instance
+        """
+        self.nav_controller = nav_controller
+        self.arm_controller = arm_controller
+        self.grip_controller = grip_controller
+        self.cam_controller = cam_controller
+        
+        # Subscribe to keyboard input topic
+        self.keyboard_subscriber = rospy.Subscriber('/keyboard_input', String, self.keyboard_cb)
+        self.key = '0'
+
+        
+    def keyboard_cb(self, data):
+        """Callback when keyboard input is received"""
+        key = data.data  #.lower()
+
+        self.key = key
+        
+        # Navigation controls
+        if key == 'w':
+            if self.nav_controller:
+                self.nav_controller.go_forwards()
+        elif key == 's':
+            if self.nav_controller:
+                self.nav_controller.go_backwards()
+        elif key == 'a':
+            if self.nav_controller:
+                self.nav_controller.turn_left()
+        elif key == 'd':
+            if self.nav_controller:
+                self.nav_controller.turn_right()
+        
+        # Camera controls
+        elif key == '1':
+            if self.cam_controller:
+                self.cam_controller.tilt_up()
+        elif key == '2':
+            if self.cam_controller:
+                self.cam_controller.tilt_down()
+        elif key == '3':
+            if self.cam_controller:
+                self.cam_controller.turn_left()
+        elif key == '4':
+            if self.cam_controller:
+                self.cam_controller.turn_right()
+        
+        # Arm controls
+        elif key == 'i':
+            if self.arm_controller:
+                self.arm_controller.move_up()
+        elif key == 'k':
+            if self.arm_controller:
+                self.arm_controller.move_down()
+        elif key == 'j':
+            if self.arm_controller:
+                self.arm_controller.extend()
+        elif key == 'l':
+            if self.arm_controller:
+                self.arm_controller.retract()
+        
+        # Gripper controls
+        elif key == '6':
+            if self.grip_controller:
+                self.grip_controller.open_gripper()
+        elif key == '7':
+            if self.grip_controller:
+                self.grip_controller.close_gripper()
+        elif key == '8':
+            if self.grip_controller:
+                self.grip_controller.turn_left()
+        elif key == '9':
+            if self.grip_controller:
+                self.grip_controller.turn_right()
 
 
 
@@ -1146,14 +1222,14 @@ class NewDisplayPage(QWidget):
         self.videos_widget = QWidget()
         self.videos_layout = QHBoxLayout()
 
-        
+        ## Main head camera the right side
         self.main_camera_widget = QWidget()
         self.main_camera_label = QLabel(text="Head Cam")
         self.main_camera_label.setFixedHeight(20)
 
         self.main_camera = DisplayImageWidget(parent=self)
-        self.main_camera.available_modes["arm"] = {"show_function" : self.main_camera.only_show_image, "controller" : None}
-        # self.main_camera.set_mode("arm")
+        self.main_camera.available_modes["arm"] = {"show_function" : self.main_camera.only_show_image, "controller" : ArmController(parent=self.main_camera)}
+        self.main_camera.set_mode("arm")
 
         self.main_camera_layout = QVBoxLayout()
         self.main_camera_layout.addWidget(self.main_camera_label)
@@ -1161,32 +1237,25 @@ class NewDisplayPage(QWidget):
         #self.main_camera_layout.addStretch()
 
         self.main_camera_layout.setAlignment(self.main_camera_label, Qt.AlignHCenter)
+        self.main_camera_widget.setLayout(self.main_camera_layout)
 
+        ## Gripper camera panel the left side
         self.arm_camera_widget = QWidget()
         self.arm_camera_label = QLabel(text="Gripper Cam")
         self.arm_camera_label.setFixedHeight(20)
 
         self.arm_camera = DisplayImageWidget(parent=self)
         self.arm_camera.image_frame.setFixedSize(960, 540)
-        self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.only_show_image, "controller" : None}
-        # self.arm_camera.set_mode("gripper")
+        self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.only_show_image, "controller" : GripperController(parent=self.arm_camera)}
+        self.arm_camera.set_mode("gripper")
 
-
+        # the cam
         self.arm_camera_layout = QVBoxLayout()
         self.arm_camera_layout.addWidget(self.arm_camera_label)
         self.arm_camera_layout.addWidget(self.arm_camera)
-
-        self.cam_buttons = CameraButtonSet(parent=self)
-        # self.emotions = emotionButtonSet(parent=self)
-
-        self.arm_camera_layout.addWidget(self.cam_buttons)
-        # self.arm_camera_layout.addWidget(self.emotions)
         self.arm_camera_layout.setAlignment(self.arm_camera_label, Qt.AlignHCenter)
-
-        self.main_camera_widget.setLayout(self.main_camera_layout)
-        self.arm_camera_widget.setLayout(self.arm_camera_layout)
-        self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
-
+        
+        # info labels
         self.eye_value = 0
         self.eyes_label = QLabel("Initial Text")
         self.key_value = 0
@@ -1195,26 +1264,41 @@ class NewDisplayPage(QWidget):
         self.arm_camera_layout.addWidget(self.eyes_label)
         self.arm_camera_layout.addWidget(self.keys_label)
 
+        self.cam_buttons = CameraButtonSet(parent=self)
 
+        self.arm_camera_layout.addWidget(self.cam_buttons)
+        
+        self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
+        
+        
+        
+        # keyboard image
+        self.image_label = QLabel()
+        self.image_label.setScaledContents(True)  # Scale image to fit label
+        self.image_path = os.path.join(os.path.dirname(__file__), "keyboard_layout.png")
+        self.load_image(self.image_path)
+        self.arm_camera_layout.addWidget(self.image_label)
+
+        self.arm_camera_widget.setLayout(self.arm_camera_layout)
+
+
+        # timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_labels)
         self.timer.start(500)
 
-
+        ## Putting both panels onto main window
         self.videos_layout.addWidget(self.arm_camera_widget)
         self.videos_layout.addWidget(self.main_camera_widget)
+        
         self.videos_widget.setLayout(self.videos_layout)
 
-        # self.navigation_button = QPushButton(text="Navigation Mode")
-        # self.navigation_button.setFixedHeight(80)
-
-        #self.layout.addWidget(self.top_label)
         self.layout.addWidget(self.videos_widget)
-        # self.layout.addWidget(self.navigation_button)
         self.layout.addStretch()
-        self.direction = eyedirection()
         self.setLayout(self.layout)
 
+        ## input stuff
+        self.direction = eyedirection()
         self.vid_subscriber = rospy.Subscriber("camera/color/image_raw", Image, self.main_camera_cb)
 
         self.arm_cam_thread = threading.Thread(target=self.run_arm_camera, daemon=True)
@@ -1225,20 +1309,24 @@ class NewDisplayPage(QWidget):
         self.arm_controller = ArmController(parent=self)
         self.grip_controller = GripperController(parent=self)
         self.cam_controller = CameraController(parent=self)
+              
+        # Initialize keyboard input listener
+        self.keyboard_listener = KeyboardInputListener(
+            nav_controller=self.nav_controller,
+            arm_controller=self.arm_controller,
+            grip_controller=self.grip_controller,
+            cam_controller=self.cam_controller
+        )
         
-
-
-
-
 
     def update_labels(self):
     # Read content from the text file
         self.eye_value = self.direction.a
         self.eyes_label.setText(str(self.eye_value))
+        self.key_value = self.keyboard_listener.key
+        self.keys_label.setText(str(self.key_value))
         
         
-
-
     def main_camera_cb(self, data):
         cv_image = cv2.rotate(self.vid_bridge.imgmsg_to_cv2(data), cv2.ROTATE_90_CLOCKWISE)
         self.main_camera.show_image_by_mode(cv_image)
@@ -1252,8 +1340,23 @@ class NewDisplayPage(QWidget):
             _, frame = vid.read()
             self.arm_camera.show_image_by_mode(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
+    def load_image(self, image_path):
+        """Load and display image from file path"""
+        pixmap = QPixmap(image_path)
+        
+        # Check if image loaded successfully
+        if pixmap.isNull():
+            print("Error: Could not load image from {}".format(image_path))
+            return
+        
+        # Scale image to desired size 960 is width of gripper cam
+        scaled_pixmap = pixmap.scaledToWidth(960, Qt.SmoothTransformation)
+        self.image_label.setPixmap(scaled_pixmap)
+    
+    
 
-    def keyboardCommands(self):
+
+    '''def keyboardCommands(self):
         self.key_value = keyboard.getch()
 
         self.keys_label.setText(str(self.key_value))
@@ -1297,7 +1400,7 @@ class NewDisplayPage(QWidget):
             self.grip_controller.open_gripper()
         elif self.key_value == '9':
             self.grip_controller.close_gripper()
-        
+        '''
 
 
 
