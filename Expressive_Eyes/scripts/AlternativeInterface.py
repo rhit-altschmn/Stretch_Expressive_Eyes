@@ -10,6 +10,7 @@ import shapely
 import actionlib
 import datetime
 import threading
+import keyboard
 from std_msgs.msg import Float64MultiArray
 from sensor_msgs.msg import Image, JointState
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
@@ -18,9 +19,9 @@ from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
 from PyQt5 import QtCore
 from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QMainWindow, QStackedWidget
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 
 class CameraController():
     def __init__(self, forwards_scale = 1, backwards_scale = 1, left_scale = 1, right_scale = 1, parent=None):
@@ -828,6 +829,21 @@ class CameraButtonSet(QWidget):
         self.setLayout(self.main_layout)
         self.setFixedSize(300, 300)
 
+class KeyboardCommand():
+    def __init__(self):
+        self.nav_controller = NavigationController(parent=self)
+        self.arm_controller = ArmController(parent=self)
+        self.grip_controller = GripperController(parent=self)
+        self.cam_controller = CameraController(parent=self)
+
+
+
+
+
+
+
+
+
 
 #Based on the top answer to this question https://stackoverflow.com/questions/57204782/show-an-opencv-image-with-pyqt5
 class DisplayImageWidget(QWidget):
@@ -1064,7 +1080,7 @@ class ManipulationPage(QWidget):
 
         self.main_camera_widget.setLayout(self.main_camera_layout)
         self.arm_camera_widget.setLayout(self.arm_camera_layout)
-##########################################################################################################################
+
         self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
 
         self.value = 0
@@ -1114,7 +1130,178 @@ class ManipulationPage(QWidget):
             _, frame = vid.read()
             self.arm_camera.show_image_by_mode(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
+### ------------------------- Start New Display Window -----------------------------------------------------------------------------##########
 
+
+class NewDisplayPage(QWidget):
+    def __init__(self):
+        super(QWidget, self).__init__()
+
+        self.layout = QVBoxLayout()
+        #self.top_label = QLabel(text="Manipulator Mode")
+        #self.top_label.setMaximumHeight(20)
+        
+        self.vid_bridge = CvBridge()
+        
+        self.videos_widget = QWidget()
+        self.videos_layout = QHBoxLayout()
+
+        
+        self.main_camera_widget = QWidget()
+        self.main_camera_label = QLabel(text="Head Cam")
+        self.main_camera_label.setFixedHeight(20)
+
+        self.main_camera = DisplayImageWidget(parent=self)
+        self.main_camera.available_modes["arm"] = {"show_function" : self.main_camera.only_show_image, "controller" : None}
+        # self.main_camera.set_mode("arm")
+
+        self.main_camera_layout = QVBoxLayout()
+        self.main_camera_layout.addWidget(self.main_camera_label)
+        self.main_camera_layout.addWidget(self.main_camera)
+        #self.main_camera_layout.addStretch()
+
+        self.main_camera_layout.setAlignment(self.main_camera_label, Qt.AlignHCenter)
+
+        self.arm_camera_widget = QWidget()
+        self.arm_camera_label = QLabel(text="Gripper Cam")
+        self.arm_camera_label.setFixedHeight(20)
+
+        self.arm_camera = DisplayImageWidget(parent=self)
+        self.arm_camera.image_frame.setFixedSize(960, 540)
+        self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.only_show_image, "controller" : None}
+        # self.arm_camera.set_mode("gripper")
+
+
+        self.arm_camera_layout = QVBoxLayout()
+        self.arm_camera_layout.addWidget(self.arm_camera_label)
+        self.arm_camera_layout.addWidget(self.arm_camera)
+
+        self.cam_buttons = CameraButtonSet(parent=self)
+        # self.emotions = emotionButtonSet(parent=self)
+
+        self.arm_camera_layout.addWidget(self.cam_buttons)
+        # self.arm_camera_layout.addWidget(self.emotions)
+        self.arm_camera_layout.setAlignment(self.arm_camera_label, Qt.AlignHCenter)
+
+        self.main_camera_widget.setLayout(self.main_camera_layout)
+        self.arm_camera_widget.setLayout(self.arm_camera_layout)
+        self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
+
+        self.eye_value = 0
+        self.eyes_label = QLabel("Initial Text")
+        self.key_value = 0
+        self.keys_label = QLabel("Keyboard text")
+
+        self.arm_camera_layout.addWidget(self.eyes_label)
+        self.arm_camera_layout.addWidget(self.keys_label)
+
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_labels)
+        self.timer.start(500)
+
+
+        self.videos_layout.addWidget(self.arm_camera_widget)
+        self.videos_layout.addWidget(self.main_camera_widget)
+        self.videos_widget.setLayout(self.videos_layout)
+
+        # self.navigation_button = QPushButton(text="Navigation Mode")
+        # self.navigation_button.setFixedHeight(80)
+
+        #self.layout.addWidget(self.top_label)
+        self.layout.addWidget(self.videos_widget)
+        # self.layout.addWidget(self.navigation_button)
+        self.layout.addStretch()
+        self.direction = eyedirection()
+        self.setLayout(self.layout)
+
+        self.vid_subscriber = rospy.Subscriber("camera/color/image_raw", Image, self.main_camera_cb)
+
+        self.arm_cam_thread = threading.Thread(target=self.run_arm_camera, daemon=True)
+        self.arm_cam_thread.start()
+
+        ## controllers
+        self.nav_controller = NavigationController(parent=self)
+        self.arm_controller = ArmController(parent=self)
+        self.grip_controller = GripperController(parent=self)
+        self.cam_controller = CameraController(parent=self)
+        
+
+
+
+
+
+    def update_labels(self):
+    # Read content from the text file
+        self.eye_value = self.direction.a
+        self.eyes_label.setText(str(self.eye_value))
+        
+        
+
+
+    def main_camera_cb(self, data):
+        cv_image = cv2.rotate(self.vid_bridge.imgmsg_to_cv2(data), cv2.ROTATE_90_CLOCKWISE)
+        self.main_camera.show_image_by_mode(cv_image)
+
+    def run_arm_camera(self):
+        vid = cv2.VideoCapture(6)
+        #vid = cv2.VideoCapture(0)
+        while(True):
+            # Capture the video frame
+            # by frame
+            _, frame = vid.read()
+            self.arm_camera.show_image_by_mode(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+
+    def keyboardCommands(self):
+        self.key_value = keyboard.getch()
+
+        self.keys_label.setText(str(self.key_value))
+
+        # main drive
+        if self.key_value == 'w':
+            self.nav_controller.go_forwards()
+        elif self.key_value == 's':
+            self.nav_controller.go_backwards()
+        elif self.key_value == 'a':
+            self.nav_controller.turn_left()
+        elif self.key_value == 'd':
+            self.nav_controller.turn_right()
+        
+        # head camera
+        elif self.key_value == '1':
+            self.cam_controller.tilt_up()
+        elif self.key_value == '2':
+            self.cam_controller.tilt_down()
+        elif self.key_value == '3':
+            self.cam_controller.turn_left()
+        elif self.key_value == '4':
+            self.cam_controller.turn_right()
+        
+        # arm
+        elif self.key_value == 'i':
+            self.arm_controller.move_up()
+        elif self.key_value == 'k':
+            self.arm_controller.move_down()
+        elif self.key_value == 'j':
+            self.arm_controller.extend()
+        elif self.key_value == 'l':
+            self.arm_controller.retract()
+        
+        # gripper
+        elif self.key_value == '6':
+            self.grip_controller.turn_left()
+        elif self.key_value == '7':
+            self.grip_controller.turn_right()
+        elif self.key_value == '8':
+            self.grip_controller.open_gripper()
+        elif self.key_value == '9':
+            self.grip_controller.close_gripper()
+        
+
+
+
+### ------------------------- End New Display Window -----------------------------------------------------------------------------###
 
 #Main window class
 class MainWindow(QMainWindow):
@@ -1125,24 +1312,28 @@ class MainWindow(QMainWindow):
 
         self.vid_widget = DisplayImageWidget(parent=self)
 
-        self.main_widget = QStackedWidget()
+        # self.main_widget = QStackedWidget()
 
-        self.home_page = HomePage()
-        self.nav_page = NavigationPage()
-        self.manipulation_page = ManipulationPage()
+        # self.home_page = HomePage()
+        # self.nav_page = NavigationPage()
+        # self.manipulation_page = ManipulationPage()
 
-        self.main_widget.addWidget(self.home_page)
-        self.main_widget.addWidget(self.nav_page)
-        self.main_widget.addWidget(self.manipulation_page)
+        # self.main_widget.addWidget(self.home_page)
+        # self.main_widget.addWidget(self.nav_page)
+        # self.main_widget.addWidget(self.manipulation_page)
 
-        self.home_page.navmode_button.clicked.connect(lambda: self.change_page(1))
-        self.home_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
+        # self.home_page.navmode_button.clicked.connect(lambda: self.change_page(1))
+        # self.home_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
         
 
-        self.manipulation_page.navigation_button.clicked.connect(lambda: self.change_page(1))
-        self.nav_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
+        # self.manipulation_page.navigation_button.clicked.connect(lambda: self.change_page(1))
+        # self.nav_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
         
+        self.main_widget = QWidget()
 
+        self.new_page = NewDisplayPage()
+        
+        self.main_widget.addWidget(self.new_page)
 
         self.setCentralWidget(self.main_widget)
 
