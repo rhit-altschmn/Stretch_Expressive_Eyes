@@ -47,6 +47,10 @@ class CameraController():
         self.delt_horiz = 0.125
         self.parent = parent
         self.joint_states = None
+
+        self.pan_lim = False
+        self.tilt_lim = False
+
         self.head_client = actionlib.SimpleActionClient('/stretch_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
         server_reached = self.head_client.wait_for_server(timeout=rospy.Duration(60.0))
         self.joints_subscriber = rospy.Subscriber('/joint_states', JointState, self.joint_states_cb)
@@ -101,6 +105,19 @@ class CameraController():
             joint_value = joint_state.position[joint_index]
             delta = command['delta']
             new_value = joint_value + delta
+
+            if joint_index == 'joint_head_tilt':
+                if new_value < 0 or new_value > 2.0:  #115 deg range
+                    self.tilt_lim = True
+                else:
+                    self.tilt_lim = False
+
+            if joint_index == 'joint_head_pan':
+                if new_value < 0 or new_value > 5.86: #336 deg range probably radians though
+                    self.pan_lim = True
+                else:
+                    self.pan_lim = False
+
             point.positions = [new_value]
             trajectory_goal.trajectory.points = [point]
             trajectory_goal.trajectory.header.stamp = rospy.Time.now()
@@ -407,14 +424,14 @@ class ArmController():
         self.send_command(command)
 
     def extend(self):
-        command = {'joint': ['joint_arm_l0','joint_arm_l1', 'joint_arm_l2', 'joint_arm_l3'], 'delta': -self.delt_horiz}
-        self.send_arm_command(command)
-
-    def retract(self):
         command = {'joint': ['joint_arm_l0','joint_arm_l1', 'joint_arm_l2', 'joint_arm_l3'], 'delta': self.delt_horiz}
         self.send_arm_command(command)
 
-    def send_command(self, command):
+    def retract(self):
+        command = {'joint': ['joint_arm_l0','joint_arm_l1', 'joint_arm_l2', 'joint_arm_l3'], 'delta': -self.delt_horiz}
+        self.send_arm_command(command)
+
+    def send_command(self, command): # lift
         while self.joint_states == None:
             time.sleep(0.1)
         try:
@@ -429,6 +446,12 @@ class ArmController():
             joint_value = joint_state.position[joint_index]
             delta = command['delta']
             new_value = joint_value + delta
+            
+            if (new_value < 0.1 or new_value > 1.0):
+                self.lift_lim = True
+            else:
+                self.lift_lim = False
+
             point.positions = [new_value]
             trajectory_goal.trajectory.points = [point]
             trajectory_goal.trajectory.header.stamp = rospy.Time.now()
@@ -453,6 +476,12 @@ class ArmController():
                 joint_value = joint_state.position[joint_index]
                 delta = command['delta']
                 new_value = joint_value + delta/len(trajectory_goal.trajectory.joint_names)
+                
+                if (new_value < 0.0 or new_value > 0.5):
+                    self.arm_lim = True
+                else:
+                    self.arm_lim = False
+
                 point.positions.append(new_value)
             trajectory_goal.trajectory.points = [point]
             trajectory_goal.trajectory.header.stamp = rospy.Time.now()
@@ -498,9 +527,13 @@ class GripperController():
         self.yaw_factor = 0.1
         self.parent = parent
         self.joint_states = None
+
+        self.grip_lim = False  # 330 deg range
+
         self.arm_client = actionlib.SimpleActionClient('/stretch_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
         server_reached = self.arm_client.wait_for_server(timeout=rospy.Duration(60.0))
         self.joints_subscriber = rospy.Subscriber('/joint_states', JointState, self.joint_states_cb)
+
         #self.head_publisher = rospy.Publisher("/stretch/cmd_vel", Twist, queue_size=5)
 
     def joint_states_cb(self, data):
@@ -574,30 +607,30 @@ class GripperController():
         print("Mouseover right")
 
 
-# class KeyboardPublisher:
-#     def __init__(self):
-#         rospy.init_node('keyboard_publisher', anonymous=True)
+'''class KeyboardPublisher:
+    def __init__(self):
+        rospy.init_node('keyboard_publisher', anonymous=True)
 
-#         # Create a publisher for the keyboard input
-#         self.keyboard_pub = rospy.Publisher('/keyboard_input', String, queue_size=10)
+        # Create a publisher for the keyboard input
+        self.keyboard_pub = rospy.Publisher('/keyboard_input', String, queue_size=10)
 
-#         # Set up the keyboard listener
-#         self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
-#         self.keyboard_listener.start()
+        # Set up the keyboard listener
+        self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
+        self.keyboard_listener.start()
 
-#         # Spin to keep the node alive
-#         rospy.spin()
+        # Spin to keep the node alive
+        rospy.spin()
 
-#     def on_key_press(self, key):
-#         try:
-#             # Get the character representation of the key
-#             key_char = key.char
+    def on_key_press(self, key):
+        try:
+            # Get the character representation of the key
+            key_char = key.char
 
-#             # Publish the pressed key to the topic
-#             self.keyboard_pub.publish(key_char)
-#         except AttributeError:
-#             # Handle special keys if needed
-#             pass
+            # Publish the pressed key to the topic
+            self.keyboard_pub.publish(key_char)
+        except AttributeError:
+            # Handle special keys if needed
+            pass'''
 
 
 class SquareButton(QPushButton):
@@ -612,68 +645,68 @@ class Button(QPushButton):
         self.setFixedSize(dimensions[0], dimensions[1])
 
 
-# class emotionButtonSet(QWidget):
-#     def __init__(self, parent=None):
-#         super(emotionButtonSet, self).__init__(parent)
-#         self.pointSize = 60     
-#         self.controller = KeyboardPublisher(parent=self)                                
-#         self.fontD = self.font()
-#         self.fontD.setPointSize(self.pointSize)
+'''class emotionButtonSet(QWidget):
+    def __init__(self, parent=None):
+        super(emotionButtonSet, self).__init__(parent)
+        self.pointSize = 60     
+        self.controller = KeyboardPublisher(parent=self)                                
+        self.fontD = self.font()
+        self.fontD.setPointSize(self.pointSize)
 
-#         self.up_button = Button(parent=self)
-#         # self.up_button.setFont(self.fontD)
-#         self.up_button.setText("Happy")
+        self.up_button = Button(parent=self)
+        # self.up_button.setFont(self.fontD)
+        self.up_button.setText("Happy")
         
-#         self.down_button = Button(parent=self)
-#         # self.down_button.setFont(self.fontD)
-#         self.down_button.setText("Sad")
+        self.down_button = Button(parent=self)
+        # self.down_button.setFont(self.fontD)
+        self.down_button.setText("Sad")
 
-#         self.right_button = Button(parent=self)
+        self.right_button = Button(parent=self)
         
-#         # self.right_button.setFont(self.fontD)
-#         self.right_button.setText("angry")
+        # self.right_button.setFont(self.fontD)
+        self.right_button.setText("angry")
 
-#         self.left_button = Button(parent=self)
-#         # self.left_button.setFont(self.fontD)
-#         self.left_button.setText("Confuse")
+        self.left_button = Button(parent=self)
+        # self.left_button.setFont(self.fontD)
+        self.left_button.setText("Confuse")
 
-#         self.test1 = "w"
-
-
-#         self.middle_button = Button(parent=self)
-#         # self.middle_button.setFont(self.fontD)
-#         self.middle_button.setText("Base")
-
-        # if self.controller == 'h':
-        #     self.up_button.clicked.connect(self.controller)
-        # if self.controller == 'b':
-        #     self.down_button.clicked.connect(self.controller)
-        # if self.controller == 'n':
-        #     self.right_button.clicked.connect(self.controller)
-        # if self.controller == 'c':
-        #     self.left_button.clicked.connect(self.controller)    
-        # if self.controller == 'o':
-        #     self.middle_button.clicked.connect(self.controller)        
+        self.test1 = "w"
 
 
-        # self.main_layout = QVBoxLayout()
-        # self.middle_widget = QWidget()
-        # self.middle_layout = QHBoxLayout()
+        self.middle_button = Button(parent=self)
+        # self.middle_button.setFont(self.fontD)
+        self.middle_button.setText("Base")
 
-        # self.middle_layout.addWidget(self.left_button)
-        # self.middle_layout.addWidget(self.right_button)
-        # self.main_layout.addWidget(self.middle_widget)      
-        # self.main_layout.addWidget(self.up_button) 
-        # self.main_layout.addWidget(self.down_button)
-        # self.main_layout.addWidget(self.middle_widget)    
-        # self.middle_layout.setAlignment(self.left_button, Qt.AlignLeft)
-        # self.middle_layout.setAlignment(self.right_button, Qt.AlignRight)
-        # self.middle_widget.setLayout(self.middle_layout)
-        # self.main_layout.setAlignment(self.up_button, Qt.AlignTop)
-        # self.main_layout.setAlignment(self.down_button, Qt.AlignBottom)
+        if self.controller == 'h':
+            self.up_button.clicked.connect(self.controller)
+        if self.controller == 'b':
+            self.down_button.clicked.connect(self.controller)
+        if self.controller == 'n':
+            self.right_button.clicked.connect(self.controller)
+        if self.controller == 'c':
+            self.left_button.clicked.connect(self.controller)    
+        if self.controller == 'o':
+            self.middle_button.clicked.connect(self.controller)        
 
-        # self.setLayout(self.main_layout)
-        # self.setFixedSize(300, 300)
+
+        self.main_layout = QVBoxLayout()
+        self.middle_widget = QWidget()
+        self.middle_layout = QHBoxLayout()
+
+        self.middle_layout.addWidget(self.left_button)
+        self.middle_layout.addWidget(self.right_button)
+        self.main_layout.addWidget(self.middle_widget)      
+        self.main_layout.addWidget(self.up_button) 
+        self.main_layout.addWidget(self.down_button)
+        self.main_layout.addWidget(self.middle_widget)    
+        self.middle_layout.setAlignment(self.left_button, Qt.AlignLeft)
+        self.middle_layout.setAlignment(self.right_button, Qt.AlignRight)
+        self.middle_widget.setLayout(self.middle_layout)
+        self.main_layout.setAlignment(self.up_button, Qt.AlignTop)
+        self.main_layout.setAlignment(self.down_button, Qt.AlignBottom)
+
+        self.setLayout(self.main_layout)
+        self.setFixedSize(300, 300)'''
 
 
 class eyedirection(QWidget):
@@ -852,6 +885,8 @@ class KeyboardInputListener:
         self.keyboard_subscriber = rospy.Subscriber('/keyboard_input', String, self.keyboard_cb)
         self.key = '0'
 
+        self.error_string = ""
+
         
     def keyboard_cb(self, data):
         """Callback when keyboard input is received"""
@@ -894,10 +929,10 @@ class KeyboardInputListener:
         elif key == 'k':
             if self.arm_controller:
                 self.arm_controller.move_down()
-        elif key == 'l': # for some reason extend and retract opposites
+        elif key == 'j': 
             if self.arm_controller:
                 self.arm_controller.extend()
-        elif key == 'j':
+        elif key == 'l':
             if self.arm_controller:
                 self.arm_controller.retract()
         
@@ -914,6 +949,33 @@ class KeyboardInputListener:
         elif key == '9':
             if self.grip_controller:
                 self.grip_controller.turn_right()
+
+        #limit check
+        self.find_errors()
+        
+
+
+    def find_errors(self):
+        # self.error_string = '-'
+        err_list = []
+
+        if self.arm_controller.arm_lim:
+            err_list.append(" Arm Limit ")
+        if self.arm_controller.lift_lim:
+            err_list.append(" Lift Limit ")
+        if self.grip_controller.grip_lim:
+            err_list.append(" Grip Limit")
+        if self.cam_controller.pan_lim:
+            err_list.append(" Cam Pan Limit")
+        if self.cam_controller.tilt_lim:
+            err_list.append(" Cam Tilt Limit")
+
+        if not err_list:
+            self.error_string = "no range errors"
+        else:
+            self.error_string = " ".join(err_list)
+
+
 
 
 
@@ -1288,18 +1350,28 @@ class NewDisplayPage(QWidget):
         
         # info labels
         self.eye_value = 0
-        self.eyes_label = QLabel("Initial Text")
+        self.eyes_label = QLabel("Eyes Text")
         self.key_value = 0
         self.keys_label = QLabel("Keyboard text")
+        self.limits_value = 0
+        self.limits_label = QLabel("Limits text")
 
-        self.arm_camera_layout.addWidget(self.eyes_label)
-        self.arm_camera_layout.addWidget(self.keys_label)
 
-        self.cam_buttons = CameraButtonSet(parent=self)
+        self.display_info_layout = QHBoxLayout()
+        self.display_info_layout.addWidget(self.eyes_label)
+        self.display_info_layout.addWidget(self.key_label)
+        self.display_info_layout.addWidget(self.limits_label)
 
-        self.arm_camera_layout.addWidget(self.cam_buttons)
+
+
+        self.arm_camera_layout.addLayout(self.display_info_layout)
         
-        self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
+
+        # self.cam_buttons = CameraButtonSet(parent=self)
+
+        # self.arm_camera_layout.addWidget(self.cam_buttons)
+        
+        # self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
         
         
         
@@ -1350,8 +1422,10 @@ class NewDisplayPage(QWidget):
         # Read content from the text file
         self.eye_value = self.direction.a
         self.eyes_label.setText(str(self.eye_value))
-        self.key_value = self.keyboard_listener.key
+        self.key_value = "Key Input:  " + str(self.keyboard_listener.key)
         self.keys_label.setText(str(self.key_value))
+        self.limits_value = self.keyboard_listener.error_string
+        self.limits_label.setText(self.limits_value)
         
         
     def main_camera_cb(self, data):
@@ -1442,28 +1516,26 @@ class MainWindow(QMainWindow):
 
         self.vid_widget = DisplayImageWidget(parent=self)
 
-        self.main_widget = QStackedWidget()
+        # self.main_widget = QStackedWidget()
 
-        self.home_page = HomePage()
-        self.nav_page = NavigationPage()
-        self.manipulation_page = ManipulationPage()
+        # self.home_page = HomePage()
+        # self.nav_page = NavigationPage()
+        # self.manipulation_page = ManipulationPage()
 
-        self.main_widget.addWidget(self.home_page)
-        self.main_widget.addWidget(self.nav_page)
-        self.main_widget.addWidget(self.manipulation_page)
+        # self.main_widget.addWidget(self.home_page)
+        # self.main_widget.addWidget(self.nav_page)
+        # self.main_widget.addWidget(self.manipulation_page)
 
-        self.home_page.navmode_button.clicked.connect(lambda: self.change_page(1))
-        self.home_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
+        # self.home_page.navmode_button.clicked.connect(lambda: self.change_page(1))
+        # self.home_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
+        
+        # self.manipulation_page.navigation_button.clicked.connect(lambda: self.change_page(1))
+        # self.nav_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
         
 
-        self.manipulation_page.navigation_button.clicked.connect(lambda: self.change_page(1))
-        self.nav_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
-        
-        # self.main_widget = QWidget()
-
-        # self.new_page = NewDisplayPage()
-        
-        # self.main_widget.addWidget(self.new_page)
+        self.main_widget = QWidget()
+        self.new_page = NewDisplayPage()
+        self.main_widget.addWidget(self.new_page)
 
         self.setCentralWidget(self.main_widget)
 
@@ -1480,67 +1552,7 @@ class MainWindow(QMainWindow):
     def change_video_mode(self, mode):
         self.vid_widget.set_mode(mode)
     
-    '''def keyPressEvent(self, event):
-        """Global keyboard handler that works regardless of current page"""
-        if event.isAutoRepeat():
-            return
-        
-        key = event.key()
-        
-        # Navigation mode controls
-        if self.current_mode == "navigation":
-            nav_controller = self.navigation_page.vid_widget.available_modes["navigation"]["controller"]
-            cam_controller = self.navigation_page.cam_buttons.controller
-            
-            if key == Qt.Key_W:
-                nav_controller.go_forwards()
-            elif key == Qt.Key_S:
-                nav_controller.go_backwards()
-            elif key == Qt.Key_A:
-                nav_controller.turn_left()
-            elif key == Qt.Key_D:
-                nav_controller.turn_right()
-            elif key == Qt.Key_I:
-                cam_controller.tilt_up()
-            elif key == Qt.Key_K:
-                cam_controller.tilt_down()
-            elif key == Qt.Key_J:
-                cam_controller.turn_left()
-            elif key == Qt.Key_L:
-                cam_controller.turn_right()
-        
-        # Manipulation mode controls
-        elif self.current_mode == "manipulation":
-            arm_controller = self.manipulation_page.main_camera.available_modes["arm"]["controller"]
-            grip_controller = self.manipulation_page.arm_camera.available_modes["gripper"]["controller"]
-            cam_controller = self.manipulation_page.cam_buttons.controller
-            
-            if key == Qt.Key_W:
-                arm_controller.move_up()
-            elif key == Qt.Key_S:
-                arm_controller.move_down()
-            elif key == Qt.Key_A:
-                arm_controller.extend()
-            elif key == Qt.Key_D:
-                arm_controller.retract()
-            elif key == Qt.Key_Q:
-                grip_controller.open_gripper()
-            elif key == Qt.Key_E:
-                grip_controller.close_gripper()
-            elif key == Qt.Key_Z:
-                grip_controller.turn_left()
-            elif key == Qt.Key_C:
-                grip_controller.turn_right()
-            elif key == Qt.Key_I:
-                cam_controller.tilt_up()
-            elif key == Qt.Key_K:
-                cam_controller.tilt_down()
-            elif key == Qt.Key_J:
-                cam_controller.turn_left()
-            elif key == Qt.Key_L:
-                cam_controller.turn_right()
-            
-        '''
+    
 
 if __name__=="__main__":
     #logging.basicConfig(format='%(levelname)s %(asctime)s: %(message)s',filename=f"{os.path.dirname(os.path.abspath(__file__))}/logs/qt_interface_{time.strftime('%y_%m_%d:%H_%M_%S', time.localtime(time.time()))}.log", level=logging.INFO, datefmt="%y-%m-%d:%h-%m-%s")
