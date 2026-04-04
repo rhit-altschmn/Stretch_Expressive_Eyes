@@ -106,14 +106,18 @@ class CameraController():
             delta = command['delta']
             new_value = joint_value + delta
 
-            if joint_index == 'joint_head_tilt':
-                if new_value < 0 or new_value > 2.0:  #115 deg range
+            if joint_name == 'joint_head_tilt':
+                if new_value < -1.90:
+                    self.tilt_lim = True
+                elif new_value > 0.39:  #115 deg range
                     self.tilt_lim = True
                 else:
                     self.tilt_lim = False
 
-            if joint_index == 'joint_head_pan':
-                if new_value < 0 or new_value > 5.86: #336 deg range probably radians though
+            if joint_name == 'joint_head_pan':
+                if new_value < -1.6:
+                    self.pan_lim = True
+                elif new_value > 6.5: #336 deg range probably radians though
                     self.pan_lim = True
                 else:
                     self.pan_lim = False
@@ -447,7 +451,9 @@ class ArmController():
             delta = command['delta']
             new_value = joint_value + delta
             
-            if (new_value < 0.1 or new_value > 1.0):
+            if new_value < 0.1:
+                self.lift_lim = True
+            elif new_value > 1.0:
                 self.lift_lim = True
             else:
                 self.lift_lim = False
@@ -477,7 +483,9 @@ class ArmController():
                 delta = command['delta']
                 new_value = joint_value + delta/len(trajectory_goal.trajectory.joint_names)
                 
-                if (new_value < 0.0 or new_value > 0.5):
+                if new_value < 0.0:
+                    self.arm_lim = True
+                elif new_value > 0.12:
                     self.arm_lim = True
                 else:
                     self.arm_lim = False
@@ -528,7 +536,8 @@ class GripperController():
         self.parent = parent
         self.joint_states = None
 
-        self.grip_lim = False  # 330 deg range
+        self.wrist_lim = False  # 330 deg range
+        self.grip_lim = False
 
         self.arm_client = actionlib.SimpleActionClient('/stretch_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
         server_reached = self.arm_client.wait_for_server(timeout=rospy.Duration(60.0))
@@ -585,6 +594,24 @@ class GripperController():
             joint_value = joint_state.position[joint_index]
             delta = command['delta']
             new_value = joint_value + delta
+
+            if joint_name == 'joint_gripper_finger_left':
+                if new_value < -0.35:
+                    self.grip_lim = True
+                elif new_value > 0.18:  #115 deg range
+                    self.grip_lim = True
+                else:
+                    self.tilt_lim = False
+
+            if joint_name == 'joint_wrist_yaw':
+                if new_value < -1.6:
+                    self.pan_lim = True
+                elif new_value > 6.5: #336 deg range probably radians though
+                    self.pan_lim = True
+                else:
+                    self.pan_lim = False
+
+
             point.positions = [new_value]
             trajectory_goal.trajectory.points = [point]
             trajectory_goal.trajectory.header.stamp = rospy.Time.now()
@@ -800,13 +827,13 @@ class eyedirection(QWidget):
                 self.a = str("Front: eyes down")
             elif vert >= vDB and vert < vBU and horiz <= MoFlL and horiz > MoLB:
                 # print("Front: Slight Right")
-                self.a = str("Front: slight Left")
+                self.a = str("Front: slight left")
             elif vert >= vFdD and vert <= vUFu and horiz >= MoFlL and horiz <= 1.67:
                 # print("Front: Eyes right")
                 self.a = str("Front: eyes right")
             elif vert >= vDB and vert < vBU and horiz <= MoBR and horiz > MoRFr:
                 # print("Front: Slight left")
-                self.a = str("Front: slight left")
+                self.a = str("Front: slight right")
             elif vert >= vFdD and vert <= vUFu and horiz <= MoRFr and horiz > MoFr:
                 # print("Front: Eyes Left")
                 self.a = str("Front: eyes right")
@@ -1228,18 +1255,37 @@ class ManipulationPage(QWidget):
         # self.arm_camera_layout.addWidget(self.emotions)
         self.arm_camera_layout.setAlignment(self.arm_camera_label, Qt.AlignHCenter)
 
+        self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
+
+        # self.value = 0
+        # self.label = QLabel("Initial Text")
+        # self.key_value = 0
+        # self.keys_label = QLabel("Keyboard text")
+
+        # self.arm_camera_layout.addWidget(self.label)
+        # self.arm_camera_layout.addWidget(self.keys_label)
+
+        # info labels
+        self.eye_value = 0
+        self.eyes_label = QLabel("Eyes Text")
+        self.key_value = 0
+        self.keys_label = QLabel("Keyboard text")
+        self.limits_value = 0
+        self.limits_label = QLabel("Limits text")
+
+
+        self.display_info_layout = QHBoxLayout()
+        self.display_info_layout.addWidget(self.eyes_label)
+        self.display_info_layout.addWidget(self.keys_label)
+        self.display_info_layout.addWidget(self.limits_label)
+
+        self.arm_camera_layout.addLayout(self.display_info_layout)
+
+
+
         self.main_camera_widget.setLayout(self.main_camera_layout)
         self.arm_camera_widget.setLayout(self.arm_camera_layout)
 
-        self.arm_camera_layout.setAlignment(self.cam_buttons, Qt.AlignCenter)
-
-        self.value = 0
-        self.label = QLabel("Initial Text")
-        self.key_value = 0
-        self.keys_label = QLabel("Keyboard text")
-
-        self.arm_camera_layout.addWidget(self.label)
-        self.arm_camera_layout.addWidget(self.keys_label)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_label)
@@ -1275,12 +1321,21 @@ class ManipulationPage(QWidget):
         self.arm_cam_thread = threading.Thread(target=self.run_arm_camera, daemon=True)
         self.arm_cam_thread.start()
 
+    # def update_label(self):
+    #     # Read content from the text file
+    #     self.value = self.direction.a
+    #     self.label.setText(str(self.value))
+    #     self.key_value = self.keyboard_listener.key
+    #     self.keys_label.setText(str(self.key_value))
+
     def update_label(self):
         # Read content from the text file
-        self.value = self.direction.a
-        self.label.setText(str(self.value))
-        self.key_value = self.keyboard_listener.key
+        self.eye_value = self.direction.a
+        self.eyes_label.setText(str(self.eye_value))
+        self.key_value = "Key Input:  " + str(self.keyboard_listener.key)
         self.keys_label.setText(str(self.key_value))
+        self.limits_value = self.keyboard_listener.error_string
+        self.limits_label.setText(self.limits_value)
         
 
 
@@ -1314,8 +1369,36 @@ class NewDisplayPage(QWidget):
         self.videos_layout = QHBoxLayout()
 
         ## Main head camera the right side
+        # self.main_camera_widget = QWidget()
+        # self.main_camera_label = QLabel(text="Head Cam")
+        # self.main_camera_label.setFixedHeight(20)
+
+        # self.main_camera = DisplayImageWidget(parent=self)
+        # self.main_camera.available_modes["arm"] = {"show_function" : self.main_camera.show_navigation, "controller" : ArmController(parent=self.main_camera)}
+        # self.main_camera.set_mode("arm")
+
+        # self.main_camera_layout = QVBoxLayout()
+        # self.main_camera_layout.addWidget(self.main_camera_label)
+        # self.main_camera_layout.addWidget(self.main_camera)
+        # #self.main_camera_layout.addStretch()
+
+        # self.main_camera_layout.setAlignment(self.main_camera_label, Qt.AlignHCenter)
+        # self.main_camera_widget.setLayout(self.main_camera_layout)
+
+        # ## Gripper camera panel the left side
+        # self.arm_camera_widget = QWidget()
+        # self.arm_camera_label = QLabel(text="Gripper Cam")
+        # self.arm_camera_label.setFixedHeight(20)
+
+        # self.arm_camera = DisplayImageWidget(parent=self)
+        # self.arm_camera.image_frame.setFixedSize(960, 540)
+        # self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.show_navigation, "controller" : GripperController(parent=self.arm_camera)}
+        # self.arm_camera.set_mode("gripper")
+
+        #################################
+
         self.main_camera_widget = QWidget()
-        self.main_camera_label = QLabel(text="Head Cam")
+        self.main_camera_label = QLabel(text="Arm Control")
         self.main_camera_label.setFixedHeight(20)
 
         self.main_camera = DisplayImageWidget(parent=self)
@@ -1330,9 +1413,8 @@ class NewDisplayPage(QWidget):
         self.main_camera_layout.setAlignment(self.main_camera_label, Qt.AlignHCenter)
         self.main_camera_widget.setLayout(self.main_camera_layout)
 
-        ## Gripper camera panel the left side
         self.arm_camera_widget = QWidget()
-        self.arm_camera_label = QLabel(text="Gripper Cam")
+        self.arm_camera_label = QLabel(text="Gripper Control")
         self.arm_camera_label.setFixedHeight(20)
 
         self.arm_camera = DisplayImageWidget(parent=self)
@@ -1340,7 +1422,8 @@ class NewDisplayPage(QWidget):
         self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.show_navigation, "controller" : GripperController(parent=self.arm_camera)}
         self.arm_camera.set_mode("gripper")
 
-        
+
+        #####################################3333
 
         # the cam
         self.arm_camera_layout = QVBoxLayout()
@@ -1359,7 +1442,7 @@ class NewDisplayPage(QWidget):
 
         self.display_info_layout = QHBoxLayout()
         self.display_info_layout.addWidget(self.eyes_label)
-        self.display_info_layout.addWidget(self.key_label)
+        self.display_info_layout.addWidget(self.keys_label)
         self.display_info_layout.addWidget(self.limits_label)
 
 
@@ -1376,12 +1459,14 @@ class NewDisplayPage(QWidget):
         
         
         # keyboard image
-        self.image_label = QLabel()
-        self.image_label.setScaledContents(True)  # Scale image to fit label
-        self.image_path = os.path.join(os.path.dirname(__file__), "keyboard_layout.png")
-        self.load_image(self.image_path)
-        self.arm_camera_layout.addWidget(self.image_label)
+        # self.image_label = QLabel()
+        # self.image_label.setScaledContents(True)  # Scale image to fit label
+        # self.image_path = os.path.join(os.path.dirname(__file__), "keyboard_layout.png")
+        # self.load_image(self.image_path)
+        # self.arm_camera_layout.addWidget(self.image_label)
 
+        
+        
         self.arm_camera_widget.setLayout(self.arm_camera_layout)
 
 
@@ -1531,13 +1616,14 @@ class MainWindow(QMainWindow):
         
         # self.manipulation_page.navigation_button.clicked.connect(lambda: self.change_page(1))
         # self.nav_page.manipulation_button.clicked.connect(lambda: self.change_page(2))
+        # self.setCentralWidget(self.main_widget)
         
 
-        self.main_widget = QWidget()
+        # self.main_widget = QWidget()
         self.new_page = NewDisplayPage()
-        self.main_widget.addWidget(self.new_page)
+        # self.main_widget.addWidget(self.new_page)
 
-        self.setCentralWidget(self.main_widget)
+        self.setCentralWidget(self.new_page)
 
         
     def change_page(self, i):
