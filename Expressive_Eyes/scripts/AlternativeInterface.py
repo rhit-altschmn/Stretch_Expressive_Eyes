@@ -21,7 +21,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QMainWindow, QStackedWidget
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QFont
 
 class CameraController():
     def __init__(self, forwards_scale = 1, backwards_scale = 1, left_scale = 1, right_scale = 1, parent=None):
@@ -598,18 +598,18 @@ class GripperController():
             if joint_name == 'joint_gripper_finger_left':
                 if new_value < -0.35:
                     self.grip_lim = True
-                elif new_value > 0.18:  #115 deg range
+                elif new_value > 0.18:  
                     self.grip_lim = True
                 else:
-                    self.tilt_lim = False
+                    self.grip_lim = False
 
             if joint_name == 'joint_wrist_yaw':
-                if new_value < -1.6:
-                    self.pan_lim = True
-                elif new_value > 6.5: #336 deg range probably radians though
-                    self.pan_lim = True
+                if new_value < -1.2:
+                    self.wrist_lim = True
+                elif new_value > 4.5: 
+                    self.wrist_lim = True
                 else:
-                    self.pan_lim = False
+                    self.wrist_lim = False
 
 
             point.positions = [new_value]
@@ -1369,36 +1369,9 @@ class NewDisplayPage(QWidget):
         self.videos_layout = QHBoxLayout()
 
         ## Main head camera the right side
-        # self.main_camera_widget = QWidget()
-        # self.main_camera_label = QLabel(text="Head Cam")
-        # self.main_camera_label.setFixedHeight(20)
-
-        # self.main_camera = DisplayImageWidget(parent=self)
-        # self.main_camera.available_modes["arm"] = {"show_function" : self.main_camera.show_navigation, "controller" : ArmController(parent=self.main_camera)}
-        # self.main_camera.set_mode("arm")
-
-        # self.main_camera_layout = QVBoxLayout()
-        # self.main_camera_layout.addWidget(self.main_camera_label)
-        # self.main_camera_layout.addWidget(self.main_camera)
-        # #self.main_camera_layout.addStretch()
-
-        # self.main_camera_layout.setAlignment(self.main_camera_label, Qt.AlignHCenter)
-        # self.main_camera_widget.setLayout(self.main_camera_layout)
-
-        # ## Gripper camera panel the left side
-        # self.arm_camera_widget = QWidget()
-        # self.arm_camera_label = QLabel(text="Gripper Cam")
-        # self.arm_camera_label.setFixedHeight(20)
-
-        # self.arm_camera = DisplayImageWidget(parent=self)
-        # self.arm_camera.image_frame.setFixedSize(960, 540)
-        # self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.show_navigation, "controller" : GripperController(parent=self.arm_camera)}
-        # self.arm_camera.set_mode("gripper")
-
-        #################################
-
         self.main_camera_widget = QWidget()
         self.main_camera_label = QLabel(text="Arm Control")
+        self.main_camera_label.setFont(QFont("Arial", 12))
         self.main_camera_label.setFixedHeight(20)
 
         self.main_camera = DisplayImageWidget(parent=self)
@@ -1411,19 +1384,21 @@ class NewDisplayPage(QWidget):
         #self.main_camera_layout.addStretch()
 
         self.main_camera_layout.setAlignment(self.main_camera_label, Qt.AlignHCenter)
+        self.main_camera_layout.setAlignment(self.main_camera,Qt.AlignTop)
         self.main_camera_widget.setLayout(self.main_camera_layout)
 
+        ##Gripper Cam 
         self.arm_camera_widget = QWidget()
         self.arm_camera_label = QLabel(text="Gripper Control")
+        self.arm_camera_label.setFont(QFont("Arial", 12))
         self.arm_camera_label.setFixedHeight(20)
 
         self.arm_camera = DisplayImageWidget(parent=self)
-        self.arm_camera.image_frame.setFixedSize(960, 540)
+        self.arm_camera.image_frame.setFixedSize(960, 380)
         self.arm_camera.available_modes["gripper"] = {"show_function" : self.arm_camera.show_navigation, "controller" : GripperController(parent=self.arm_camera)}
         self.arm_camera.set_mode("gripper")
 
 
-        #####################################3333
 
         # the cam
         self.arm_camera_layout = QVBoxLayout()
@@ -1434,10 +1409,16 @@ class NewDisplayPage(QWidget):
         # info labels
         self.eye_value = 0
         self.eyes_label = QLabel("Eyes Text")
+        self.eyes_label.setFont(QFont("Arial", 12))
+        self.eyes_label.setFixedHeight(40)
         self.key_value = 0
         self.keys_label = QLabel("Keyboard text")
+        self.keys_label.setFont(QFont("Arial", 12))
+        self.keys_label.setFixedHeight(40)
         self.limits_value = 0
         self.limits_label = QLabel("Limits text")
+        self.limits_label.setFont(QFont("Arial", 12))
+        self.limits_label.setFixedHeight(40)
 
 
         self.display_info_layout = QHBoxLayout()
@@ -1458,12 +1439,12 @@ class NewDisplayPage(QWidget):
         
         
         
-        # keyboard image
-        # self.image_label = QLabel()
-        # self.image_label.setScaledContents(True)  # Scale image to fit label
-        # self.image_path = os.path.join(os.path.dirname(__file__), "keyboard_layout.png")
-        # self.load_image(self.image_path)
-        # self.arm_camera_layout.addWidget(self.image_label)
+        ##  keyboard image
+        self.image_label = QLabel()
+        self.image_label.setScaledContents(True)  # Scale image to fit label
+        self.image_path = os.path.join(os.path.dirname(__file__), "keyboard_layout.png")
+        self.load_image(self.image_path)
+        self.arm_camera_layout.addWidget(self.image_label)
 
         
         
@@ -1542,51 +1523,6 @@ class NewDisplayPage(QWidget):
     
 
 
-    '''def keyboardCommands(self):
-        self.key_value = keyboard.getch()
-
-        self.keys_label.setText(str(self.key_value))
-
-        # main drive
-        if self.key_value == 'w':
-            self.nav_controller.go_forwards()
-        elif self.key_value == 's':
-            self.nav_controller.go_backwards()
-        elif self.key_value == 'a':
-            self.nav_controller.turn_left()
-        elif self.key_value == 'd':
-            self.nav_controller.turn_right()
-        
-        # head camera
-        elif self.key_value == '1':
-            self.cam_controller.tilt_up()
-        elif self.key_value == '2':
-            self.cam_controller.tilt_down()
-        elif self.key_value == '3':
-            self.cam_controller.turn_left()
-        elif self.key_value == '4':
-            self.cam_controller.turn_right()
-        
-        # arm
-        elif self.key_value == 'i':
-            self.arm_controller.move_up()
-        elif self.key_value == 'k':
-            self.arm_controller.move_down()
-        elif self.key_value == 'j':
-            self.arm_controller.extend()
-        elif self.key_value == 'l':
-            self.arm_controller.retract()
-        
-        # gripper
-        elif self.key_value == '6':
-            self.grip_controller.turn_left()
-        elif self.key_value == '7':
-            self.grip_controller.turn_right()
-        elif self.key_value == '8':
-            self.grip_controller.open_gripper()
-        elif self.key_value == '9':
-            self.grip_controller.close_gripper()
-        '''
 
 
 
