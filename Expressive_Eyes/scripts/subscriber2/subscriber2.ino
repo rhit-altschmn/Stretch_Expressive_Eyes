@@ -1,0 +1,196 @@
+#include <Adafruit_NeoPixel.h>
+// #include <ros.h>
+// #include <std_msgs/Float64MultiArray.h>
+// #include <std_msgs/String.h>
+
+// ros::NodeHandle nh;
+
+#define PIN 4              // Arduino pin 6 to DIN of 8x32 matrix.
+#define LED_COUNT 256*2      // 8x32 = 256 NeoPixel leds
+#define BRIGHTNESS 8       // to reduce current for 256 NeoPixels
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRB + NEO_KHZ800);
+bool Manip = false;
+char incomingChar;
+int i = 0;
+int j = 0;
+unsigned long previousMillis = 0;
+unsigned long previousMillis2 = 0;
+const long interval = 5000;   //7500
+const long interval2 = 9500;
+int currentExpression;
+bool emote;
+String emotion = "base";
+
+float vFdD = -0.337;
+float vDB = 0.001;
+float vBU = 0.139;
+float vUFu = 0.277;
+float upper_limit = 0.415;
+float lower_limit = -1.917;
+
+
+int sq_corner[8] = {0,64,64*2,64*3,64*4,64*5,64*6,64*7};
+int eye_pos_index;
+int pupil_loc;
+
+//eye emotions
+int baseEyeNums[20] = {2,3,4,5,9,14,16,23,24,31,32,39,40,47,49,54,58,59,60,61};
+int happyEyeNums[6] = {12,18,30,33,45,51};
+int closedEyeNums[6] = {11,21,25,38,42,52};
+
+int centerPupils[4] = {27,28,35,36};
+int slightUpPupils[4] = {28,29,34,35};
+int upPupils[4] = {29,30,33,34};
+int slightDownPupils[4] = {26,27,36,37};
+int downPupils[4] = {25,26,37,38};
+
+uint8_t eyeLineColor[3] = {0,0,255};
+uint8_t eyePupilColor[3] = {0,250,150};
+
+
+
+
+
+
+
+// 
+
+// void camOCb(const std_msgs::Float64MultiArray & state_msg){
+//   horiz = state_msg.data[0];
+//   vert = state_msg.data[1];
+// }
+
+// void cam1Cb(const std_msgs::String & state_msg){
+//   incomingChar = state_msg.data[0];
+// }
+
+// ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
+
+// ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
+
+void setup() 
+{
+  strip.begin();
+  strip.show();            // Initialize all pixels to 'off'
+  strip.setBrightness(BRIGHTNESS);   // overall brightness
+  Serial.begin(57600);
+  happyEyes(0);
+  delay(5000);
+  baseEyes(0,0);
+  currentExpression = 1;
+
+  eye_pos_index = 0;
+  pupil_loc = 0;
+  // nh.initNode();
+  // nh.subscribe(sub);
+  // nh.subscribe(sub_1);
+}
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  unsigned long currentMillis = millis();
+
+  if(currentMillis - previousMillis >= interval){
+    // save last time homie blinked
+    previousMillis = currentMillis;
+    
+    closedEyes(eye_pos_index);
+    delay(200); //150
+    baseEyes(eye_pos_index,pupil_loc);
+    eye_pos_index++;
+    pupil_loc++;
+    if (eye_pos_index >= 8){
+      eye_pos_index = 0;
+    }
+    if(pupil_loc >= 5){
+      pupil_loc = 0;
+    }
+    
+  }
+}
+
+
+
+//------ Eyes  ------
+
+void baseEyes(int eye_index, int pupils){
+  strip.clear();
+
+  for (int n = 0; n < 20; n++){
+    strip.setPixelColor(sq_corner[eye_index] + baseEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+    strip.setPixelColor(sq_corner[eye_index+1] + baseEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+  }
+
+  drawPupils(eye_index,pupils);
+  strip.show();
+
+  //strip.setPixelColor(2, strip.Color(0, 0, 255));
+  //strip.setPixelColor(3, strip.Color(0, 0, 255));
+}
+
+void happyEyes(int eye_index){
+  strip.clear();
+
+  for (int n = 0; n < 6; n++){
+    strip.setPixelColor(sq_corner[eye_index] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+    strip.setPixelColor(sq_corner[eye_index+1] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+  }
+
+  strip.show();
+
+}
+
+void closedEyes(int eye_index){
+  strip.clear();
+
+  for (int n = 0; n < 6; n++){
+    strip.setPixelColor(sq_corner[eye_index] + closedEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+    strip.setPixelColor(sq_corner[eye_index+1] + closedEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+  }
+  strip.show();
+}
+
+void drawPupils(int eye_index, int pupil_loc){
+  if (pupil_loc == 0){
+    for (int m = 0; m < 4; m++){
+      strip.setPixelColor(sq_corner[eye_index] + upPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+      strip.setPixelColor(sq_corner[eye_index+1] + upPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+    }
+  }
+
+  if (pupil_loc == 1){
+    for (int m = 0; m < 4; m++){
+      strip.setPixelColor(sq_corner[eye_index] + slightUpPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+      strip.setPixelColor(sq_corner[eye_index+1] + slightUpPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+    }
+  }
+
+  if (pupil_loc == 2){
+    for (int m = 0; m < 4; m++){
+      strip.setPixelColor(sq_corner[eye_index] + centerPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+      strip.setPixelColor(sq_corner[eye_index+1] + centerPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+    }
+  }
+
+  if (pupil_loc == 3){
+    for (int m = 0; m < 4; m++){
+      strip.setPixelColor(sq_corner[eye_index] + slightDownPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+      strip.setPixelColor(sq_corner[eye_index+1] + slightDownPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+    }
+  }
+
+  if (pupil_loc == 4){
+    for (int m = 0; m < 4; m++){
+      strip.setPixelColor(sq_corner[eye_index] + downPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+      strip.setPixelColor(sq_corner[eye_index+1] + downPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+    }
+  }
+
+
+
+
+  
+}
+
