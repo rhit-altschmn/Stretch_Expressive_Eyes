@@ -1,9 +1,9 @@
 #include <Adafruit_NeoPixel.h>
-// #include <ros.h>
-// #include <std_msgs/Float64MultiArray.h>
-// #include <std_msgs/String.h>
+#include <ros.h>
+#include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/String.h>
 
-// ros::NodeHandle nh;
+ros::NodeHandle nh;
 
 #define PIN 4              // Arduino pin 6 to DIN of 8x32 matrix.
 #define LED_COUNT 256*2      // 8x32 = 256 NeoPixel leds
@@ -12,14 +12,14 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRB + NEO_KHZ800);
 bool Manip = false;
 char incomingChar;
-int i = 0;
-int j = 0;
+// int i = 0;
+// int j = 0;
 unsigned long previousMillis = 0;
 unsigned long previousMillis2 = 0;
 const long interval = 5000;   //7500
 const long interval2 = 9500;
 int currentExpression;
-bool emote;
+// bool emote;
 String emotion = "base";
 
 float vFdD = -0.337;
@@ -29,6 +29,11 @@ float vUFu = 0.277;
 float upper_limit = 0.415;
 float lower_limit = -1.917;
 
+float horiz;
+float vert;
+
+float eye_edges[6] = {-2.75,-1.96,-1.18,-0.4,	0.4,1.18};   //{1.178097245,	0.3926990817,	-0.3926990817,	-1.178097245,	-1.963495408,	-2.748893572}
+float pupil_edges[4] = {-0.337,0.001,0.139,0.277};
 
 int sq_corner[8] = {0,64,64*2,64*3,64*4,64*5,64*6,64*7};
 int eye_pos_index;
@@ -56,18 +61,18 @@ uint8_t eyePupilColor[3] = {0,250,150};
 
 // 
 
-// void camOCb(const std_msgs::Float64MultiArray & state_msg){
-//   horiz = state_msg.data[0];
-//   vert = state_msg.data[1];
-// }
+void camOCb(const std_msgs::Float64MultiArray & state_msg){
+  horiz = state_msg.data[0];
+  vert = state_msg.data[1];
+}
 
-// void cam1Cb(const std_msgs::String & state_msg){
-//   incomingChar = state_msg.data[0];
-// }
+void cam1Cb(const std_msgs::String & state_msg){
+  incomingChar = state_msg.data[0];
+}
 
-// ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
+ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
 
-// ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
+ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
 
 void setup() 
 {
@@ -91,6 +96,8 @@ void setup()
 void loop() {
   // put your main code here, to run repeatedly:
   unsigned long currentMillis = millis();
+  // eye_pos_index = camPanMap(horiz);
+  // pupil_loc = camTiltMap(vert);
 
   if(currentMillis - previousMillis >= interval){
     // save last time homie blinked
@@ -104,11 +111,17 @@ void loop() {
     if (eye_pos_index >= 8){
       eye_pos_index = 0;
     }
-    if(pupil_loc >= 5){
+    if(pupil_loc >= 5){ //0 look down -> 5 look up
       pupil_loc = 0;
     }
     
   }
+
+  
+
+  nh.spinOnce();
+  delay(100);
+
 }
 
 
@@ -137,9 +150,7 @@ void happyEyes(int eye_index){
     strip.setPixelColor(sq_corner[eye_index] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
     strip.setPixelColor(sq_corner[eye_index+1] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
   }
-
   strip.show();
-
 }
 
 void closedEyes(int eye_index){
@@ -188,9 +199,24 @@ void drawPupils(int eye_index, int pupil_loc){
     }
   }
 
-
-
-
-  
 }
 
+int camPanMap(float horiz){
+  //int eye_index = 0;
+  for(int i = 0; i < 6;i++){
+    if(horiz < eye_edges[i]){
+      return i;
+    }
+  }
+  return 6;
+}
+
+int camTiltMap(float vert){
+  
+  for(int j = 0; j < 4;i++){
+    if(vert < pupil_edges[j]){
+      return j;
+    }
+  }
+  return 5;
+}
