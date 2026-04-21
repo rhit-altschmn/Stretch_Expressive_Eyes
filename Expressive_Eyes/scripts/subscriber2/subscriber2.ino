@@ -87,17 +87,17 @@ void setup()
 
   eye_pos_index = 0;
   pupil_loc = 0;
-  // nh.initNode();
-  // nh.subscribe(sub);
-  // nh.subscribe(sub_1);
+  nh.initNode();
+  nh.subscribe(sub);
+  nh.subscribe(sub_1);
 }
 
 
 void loop() {
   // put your main code here, to run repeatedly:
   unsigned long currentMillis = millis();
-  // eye_pos_index = camPanMap(horiz);
-  // pupil_loc = camTiltMap(vert);
+  eye_pos_index = camPanMap(horiz);
+  pupil_loc = camTiltMap(vert);
 
   if(currentMillis - previousMillis >= interval){
     // save last time homie blinked
@@ -106,14 +106,14 @@ void loop() {
     closedEyes(eye_pos_index);
     delay(200); //150
     baseEyes(eye_pos_index,pupil_loc);
-    eye_pos_index++;
-    pupil_loc++;
-    if (eye_pos_index >= 8){
-      eye_pos_index = 0;
-    }
-    if(pupil_loc >= 5){ //0 look down -> 5 look up
-      pupil_loc = 0;
-    }
+    // eye_pos_index++;
+    // pupil_loc++;
+    // if (eye_pos_index >= 8){
+    //   eye_pos_index = 0;
+    // }
+    // if(pupil_loc >= 5){ //0 look down -> 5 look up
+    //   pupil_loc = 0;
+    // }
     
   }
 
@@ -213,7 +213,7 @@ int camPanMap(float horiz){
 
 int camTiltMap(float vert){
   
-  for(int j = 0; j < 4;i++){
+  for(int j = 0; j < 4; j++){
     if(vert < pupil_edges[j]){
       return j;
     }
