@@ -912,7 +912,7 @@ class KeyboardInputListener:
         self.keyboard_subscriber = rospy.Subscriber('/keyboard_input', String, self.keyboard_cb)
         self.key = '0'
 
-        self.error_string = ""
+        self.error_string = "--"
 
         
     def keyboard_cb(self, data):
@@ -936,44 +936,44 @@ class KeyboardInputListener:
                 self.nav_controller.turn_right()
         
         # Camera controls
-        elif key == '1':
+        elif key == 'f':
             if self.cam_controller:
                 self.cam_controller.tilt_up()
-        elif key == '2':
+        elif key == 'c':
             if self.cam_controller:
                 self.cam_controller.tilt_down()
-        elif key == '3':
+        elif key == 'x':
             if self.cam_controller:
                 self.cam_controller.turn_left()
-        elif key == '4':
+        elif key == 'v':
             if self.cam_controller:
                 self.cam_controller.turn_right()
         
         # Arm controls
-        elif key == 'i':
+        elif key == 'h':
             if self.arm_controller:
                 self.arm_controller.move_up()
-        elif key == 'k':
+        elif key == 'n':
             if self.arm_controller:
                 self.arm_controller.move_down()
-        elif key == 'j': 
+        elif key == 'b': 
             if self.arm_controller:
                 self.arm_controller.extend()
-        elif key == 'l':
+        elif key == 'm':
             if self.arm_controller:
                 self.arm_controller.retract()
         
         # Gripper controls
-        elif key == '6':
+        elif key == 'u':
             if self.grip_controller:
                 self.grip_controller.open_gripper()
-        elif key == '7':
+        elif key == 'o':
             if self.grip_controller:
                 self.grip_controller.close_gripper()
-        elif key == '8':
+        elif key == 'j':
             if self.grip_controller:
                 self.grip_controller.turn_left()
-        elif key == '9':
+        elif key == 'l':
             if self.grip_controller:
                 self.grip_controller.turn_right()
 
@@ -1442,7 +1442,7 @@ class NewDisplayPage(QWidget):
         ##  keyboard image
         self.image_label = QLabel()
         self.image_label.setScaledContents(True)  # Scale image to fit label
-        self.image_path = os.path.join(os.path.dirname(__file__), "keyboard_layout.png")
+        self.image_path = os.path.join(os.path.dirname(__file__), "new_keyboard_layout.png")
         self.load_image(self.image_path)
         self.arm_camera_layout.addWidget(self.image_label)
 
