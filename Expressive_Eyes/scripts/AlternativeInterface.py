@@ -91,15 +91,27 @@ class CameraController():
         self.send_command(command)
 
     def hotkey_left(self):
-        command = {'joint': 'joint_head_pan', 'target': -1.57}
+        command = {'joint': 'joint_head_pan', 'target': 1.57}
+        self.send_hotkey_command(command)
+        command = {'joint': 'joint_head_tilt', 'target': 0.0}
         self.send_hotkey_command(command)
 
     def hotkey_right(self):
-        command = {'joint': 'joint_head_pan', 'target': 1.57}
+        command = {'joint': 'joint_head_pan', 'target': -1.57}
+        self.send_hotkey_command(command)
+        command = {'joint': 'joint_head_tilt', 'target': 0.0}
         self.send_hotkey_command(command)
 
     def hotkey_front(self):
         command = {'joint': 'joint_head_pan', 'target': 0.0}
+        self.send_hotkey_command(command)
+        command = {'joint': 'joint_head_tilt', 'target': 0.0}
+        self.send_hotkey_command(command)
+    
+    def hotkey_back(self):
+        command = {'joint': 'joint_head_pan', 'target': 3.14}
+        self.send_hotkey_command(command)
+        command = {'joint': 'joint_head_tilt', 'target': 0.0}
         self.send_hotkey_command(command)
 
 
@@ -1006,6 +1018,20 @@ class KeyboardInputListener:
         elif key == 'v':
             if self.cam_controller:
                 self.cam_controller.turn_right()
+        
+        # Camera hotkeys 
+        elif key == 'F':
+            if self.cam_controller:
+                self.cam_controller.hotkey_front()
+        elif key == 'C':
+            if self.cam_controller:
+                self.cam_controller.hotkey_back()
+        elif key == 'X':
+            if self.cam_controller:
+                self.cam_controller.hotkey_left()
+        elif key == 'V':
+            if self.cam_controller:
+                self.cam_controller.hotkey_right()
         
         # Arm controls
         elif key == 'h':
