@@ -3,6 +3,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/String.h>
 
+
 ros::NodeHandle nh;
 
 #define PIN 4              // Arduino pin 6 to DIN of 8x32 matrix.
@@ -61,18 +62,18 @@ uint8_t eyePupilColor[3] = {0,250,150};
 
 // 
 
-void camOCb(const std_msgs::Float64MultiArray & state_msg){
-  horiz = state_msg.data[0];
-  vert = state_msg.data[1];
-}
+// void camOCb(const std_msgs::Float64MultiArray & state_msg){
+//   horiz = state_msg.data[0];
+//   vert = state_msg.data[1];
+// }
 
-void cam1Cb(const std_msgs::String & state_msg){
-  incomingChar = state_msg.data[0];
-}
+// void cam1Cb(const std_msgs::String & state_msg){
+//   incomingChar = state_msg.data[0];
+// }
 
-ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
+// ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
 
-ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
+// ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
 
 void setup() 
 {
@@ -87,39 +88,83 @@ void setup()
 
   eye_pos_index = 0;
   pupil_loc = 0;
-  nh.initNode();
-  nh.subscribe(sub);
-  nh.subscribe(sub_1);
+  // nh.initNode();
+  // nh.subscribe(sub);
+  // nh.subscribe(sub_1);
 }
 
 
 void loop() {
   // put your main code here, to run repeatedly:
   unsigned long currentMillis = millis();
-  eye_pos_index = camPanMap(horiz);
-  pupil_loc = camTiltMap(vert);
+  // eye_pos_index = camPanMap(horiz);
+  // pupil_loc = camTiltMap(vert);
 
-  if(currentMillis - previousMillis >= interval){
+  if(currentMillis - previousMillis >= interval && emotion == "base"){
     // save last time homie blinked
     previousMillis = currentMillis;
     
     closedEyes(eye_pos_index);
     delay(200); //150
     baseEyes(eye_pos_index,pupil_loc);
-    // eye_pos_index++;
-    // pupil_loc++;
-    // if (eye_pos_index >= 8){
-    //   eye_pos_index = 0;
-    // }
-    // if(pupil_loc >= 5){ //0 look down -> 5 look up
-    //   pupil_loc = 0;
-    // }
+    eye_pos_index++;
+    pupil_loc++;
+    if (eye_pos_index >= 7){
+      eye_pos_index = 0;
+    }
+    if(pupil_loc >= 5){ //0 look down -> 5 look up
+      pupil_loc = 0;
+    }
     
   }
 
-  
+  if(emotion != "base"){
+    
+    if (emotion == "happy"){
+      happyEyes(eye_pos_index);
+    }
 
-  nh.spinOnce();
+    if(currentMillis - previousMillis2 >= interval2){
+      previousMillis2 = currentMillis; 
+      emotion = "base";     
+      
+    }
+  }
+
+  // if (Serial.available() > 0) {
+  //   char incomingByte = Serial.read();
+  //   Serial.print("I received: ");
+  //   Serial.println(incomingByte);
+  // }
+
+  while (Serial.available()){
+    char incomingChar = Serial.read();
+    Serial.print("I received: ");
+    Serial.println(incomingChar);
+
+    switch(incomingChar) {     
+      case 'h':
+        emotion = "happy";
+        Serial.println("set emotion happy");
+        break;
+      case 'b':
+        emotion = "sad";
+        break;
+      case 'n':
+        emotion = "angry";
+        break;
+      case 'c':
+        emotion = "confused";
+        break;
+      case 'o':
+        emotion = "base";
+        Serial.println("set emotion base");
+        break;      
+    }
+
+  }
+
+  // nh.spinOnce();
   delay(100);
 
 }

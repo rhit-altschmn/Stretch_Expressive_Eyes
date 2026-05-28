@@ -90,6 +90,23 @@ class CameraController():
         command = {'joint': 'joint_head_pan', 'delta': -self.delt_horiz}
         self.send_command(command)
 
+    def hotkey_left(self):
+        command = {'joint': 'joint_head_pan', 'target': -1.57}
+        self.send_hotkey_command(command)
+
+    def hotkey_right(self):
+        command = {'joint': 'joint_head_pan', 'target': 1.57}
+        self.send_hotkey_command(command)
+
+    def hotkey_front(self):
+        command = {'joint': 'joint_head_pan', 'target': 0.0}
+        self.send_hotkey_command(command)
+
+
+
+
+
+
     def send_command(self, command):
         while self.joint_states == None:
             time.sleep(0.1)
@@ -129,6 +146,47 @@ class CameraController():
         except Exception as ex:
             logging.error("Error: Exception encountered while passing command {command} to camera controls")
             logging.error(ex)
+
+    def send_hotkey_command(self, command):
+        while self.joint_states == None:
+            time.sleep(0.1)
+        try:
+            joint_state = self.joint_states
+            point = JointTrajectoryPoint()
+            point.time_from_start = rospy.Duration(0.1)
+            trajectory_goal = FollowJointTrajectoryGoal()
+            trajectory_goal.goal_time_tolerance = rospy.Time(0.25)
+            joint_name = command['joint']
+            trajectory_goal.trajectory.joint_names = [joint_name]
+            joint_index = joint_state.name.index(joint_name)
+            joint_value = joint_state.position[joint_index]
+            new_value = command['target']
+            # new_value = joint_value + delta
+
+            # if joint_name == 'joint_head_tilt':
+            #     if new_value < -1.90:
+            #         self.tilt_lim = True
+            #     elif new_value > 0.39:  #115 deg range
+            #         self.tilt_lim = True
+            #     else:
+            #         self.tilt_lim = False
+
+            # if joint_name == 'joint_head_pan':
+            #     if new_value < -1.6:
+            #         self.pan_lim = True
+            #     elif new_value > 6.5: #336 deg range probably radians though
+            #         self.pan_lim = True
+            #     else:
+            #         self.pan_lim = False
+
+            point.positions = [new_value]
+            trajectory_goal.trajectory.points = [point]
+            trajectory_goal.trajectory.header.stamp = rospy.Time.now()
+            self.head_client.send_goal(trajectory_goal)
+        except Exception as ex:
+            logging.error("Error: Exception encountered while passing command {command} to camera controls")
+            logging.error(ex)
+        
         
 
     def mouseover_forwards(self):
