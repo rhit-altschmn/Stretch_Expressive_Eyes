@@ -2,6 +2,7 @@
 
 import rospy
 from std_msgs.msg import String
+# from sensor_msgs.msg import JointState
 from pynput import keyboard
 # import sys, tty, termios
 
@@ -17,6 +18,10 @@ class KeyboardPublisher:
         # Set up the keyboard listener
         self.keyboard_listener = keyboard.Listener(on_press=self.on_key_press)
         self.keyboard_listener.start()
+
+        # joint states
+        # self.joints_subscriber = rospy.Subscriber('/joint_states', JointState, self.joint_states_cb)
+        # self.joint_states = None
 
         # Spin to keep the node alive
         rospy.spin()

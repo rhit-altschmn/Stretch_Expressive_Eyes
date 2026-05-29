@@ -991,7 +991,7 @@ class KeyboardInputListener:
 
     def keyboard_cb(self, data):
         """Callback when keyboard input is received"""
-        if self.joint_state is not None:
+        if self.joint_state == None:
             key = data.data  #.lower()
 
             self.key = key

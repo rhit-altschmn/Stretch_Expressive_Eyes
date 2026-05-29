@@ -42,9 +42,15 @@ int pupil_loc;
 
 //eye emotions
 int baseEyeNums[20] = {2,3,4,5,9,14,16,23,24,31,32,39,40,47,49,54,58,59,60,61};
-int happyEyeNums[6] = {12,18,30,33,45,51};
 int closedEyeNums[6] = {11,21,25,38,42,52};
 
+int happyEyeNums[6] = {12,18,30,33,45,51};
+int confusedLeftNums[15] = {4, 10, 12, 18, 29, 34, 45, 50, 61, 22, 25, 38, 41, 54, 57};
+int confusedLeftPupil[2] = {36, 43};
+int confusedRightNums[17] = {3, 5, 11, 26, 27, 28, 28, 33, 47, 49, 61, 60, 59, 58, 54, 40, 38};
+int confusedRightPupil[2] = {43,44};
+
+// pupils
 int centerPupils[4] = {27,28,35,36};
 int slightUpPupils[4] = {28,29,34,35};
 int upPupils[4] = {29,30,33,34};
@@ -56,27 +62,20 @@ uint8_t eyePupilColor[3] = {0,250,150};
 
 
 
+void camOCb(const std_msgs::Float64MultiArray & state_msg){
+  horiz = state_msg.data[0];
+  vert = state_msg.data[1];
+}
 
+void cam1Cb(const std_msgs::String & state_msg){
+  incomingChar = state_msg.data[0];
+}
 
+ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
 
+ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
 
-// 
-
-// void camOCb(const std_msgs::Float64MultiArray & state_msg){
-//   horiz = state_msg.data[0];
-//   vert = state_msg.data[1];
-// }
-
-// void cam1Cb(const std_msgs::String & state_msg){
-//   incomingChar = state_msg.data[0];
-// }
-
-// ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
-
-// ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);
-
-void setup() 
-{
+void setup() {
   strip.begin();
   strip.show();            // Initialize all pixels to 'off'
   strip.setBrightness(BRIGHTNESS);   // overall brightness
@@ -88,40 +87,49 @@ void setup()
 
   eye_pos_index = 0;
   pupil_loc = 0;
-  // nh.initNode();
-  // nh.subscribe(sub);
-  // nh.subscribe(sub_1);
+  nh.initNode();
+  nh.subscribe(sub);
+  nh.subscribe(sub_1);
 }
 
 
 void loop() {
   // put your main code here, to run repeatedly:
   unsigned long currentMillis = millis();
-  // eye_pos_index = camPanMap(horiz);
-  // pupil_loc = camTiltMap(vert);
+  eye_pos_index = camPanMap(horiz);
+  pupil_loc = camTiltMap(vert);
 
-  if(currentMillis - previousMillis >= interval && emotion == "base"){
-    // save last time homie blinked
-    previousMillis = currentMillis;
-    
-    closedEyes(eye_pos_index);
-    delay(200); //150
+  if (emotion == "base"){
     baseEyes(eye_pos_index,pupil_loc);
-    eye_pos_index++;
-    pupil_loc++;
-    if (eye_pos_index >= 7){
-      eye_pos_index = 0;
+    if(currentMillis - previousMillis >= interval){
+      // save last time homie blinked
+      previousMillis = currentMillis;
+      
+      closedEyes(eye_pos_index);
+      delay(200); //150
+      baseEyes(eye_pos_index,pupil_loc);
     }
-    if(pupil_loc >= 5){ //0 look down -> 5 look up
-      pupil_loc = 0;
-    }
-    
   }
-
-  if(emotion != "base"){
+  
+  else{
     
+    // switch(emotion){
+    //   case "happy":
+    //     happyEyes(eye_pos_index);
+    //     break;
+    //   case "confused":
+    //     confusedEyes(eye_pos_index);
+    //     break;
+
+
+
+    // }
+
     if (emotion == "happy"){
       happyEyes(eye_pos_index);
+    }
+    if (emotion == "confused"){
+      confusedEyes(eye_pos_index);
     }
 
     if(currentMillis - previousMillis2 >= interval2){
@@ -143,20 +151,20 @@ void loop() {
     Serial.println(incomingChar);
 
     switch(incomingChar) {     
-      case 'h':
+      case '2':
         emotion = "happy";
         Serial.println("set emotion happy");
         break;
-      case 'b':
+      case '3':
         emotion = "sad";
         break;
-      case 'n':
-        emotion = "angry";
-        break;
-      case 'c':
+      case '4':
         emotion = "confused";
         break;
-      case 'o':
+      case '5':
+        emotion = "angry";
+        break;
+      case '1':
         emotion = "base";
         Serial.println("set emotion base");
         break;      
@@ -164,7 +172,7 @@ void loop() {
 
   }
 
-  // nh.spinOnce();
+  nh.spinOnce();
   delay(100);
 
 }
@@ -184,18 +192,6 @@ void baseEyes(int eye_index, int pupils){
   drawPupils(eye_index,pupils);
   strip.show();
 
-  //strip.setPixelColor(2, strip.Color(0, 0, 255));
-  //strip.setPixelColor(3, strip.Color(0, 0, 255));
-}
-
-void happyEyes(int eye_index){
-  strip.clear();
-
-  for (int n = 0; n < 6; n++){
-    strip.setPixelColor(sq_corner[eye_index] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
-    strip.setPixelColor(sq_corner[eye_index+1] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
-  }
-  strip.show();
 }
 
 void closedEyes(int eye_index){
@@ -208,6 +204,36 @@ void closedEyes(int eye_index){
   strip.show();
 }
 
+void happyEyes(int eye_index){
+  strip.clear();
+
+  for (int n = 0; n < 6; n++){
+    strip.setPixelColor(sq_corner[eye_index] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+    strip.setPixelColor(sq_corner[eye_index+1] + happyEyeNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+  }
+  strip.show();
+}
+
+void confusedEyes(int eye_index){
+  strip.clear();
+
+  for (int n = 0; n < 15; n++){
+    strip.setPixelColor(sq_corner[eye_index] + confusedLeftNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+  }
+  for (int n = 0; n < 17; n++){
+    strip.setPixelColor(sq_corner[eye_index+1] + confusedRightNums[n], eyeLineColor[0],eyeLineColor[1],eyeLineColor[2]);
+  }
+
+  for (int m = 0; m < 2; m++){
+    strip.setPixelColor(sq_corner[eye_index] + confusedLeftPupil[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+    strip.setPixelColor(sq_corner[eye_index+1] + confusedRightPupil[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
+  }
+  
+  strip.show();
+}
+
+
+// --------- moving pupils ---------------------------------------------------
 void drawPupils(int eye_index, int pupil_loc){
   if (pupil_loc == 0){
     for (int m = 0; m < 4; m++){
