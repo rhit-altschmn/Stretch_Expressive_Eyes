@@ -109,7 +109,7 @@ class CameraController():
         self.send_hotkey_command(command)
     
     def hotkey_back(self):
-        command = {'joint': 'joint_head_pan', 'target': 3.14}
+        command = {'joint': 'joint_head_pan', 'target': -3.14}
         self.send_hotkey_command(command)
         command = {'joint': 'joint_head_tilt', 'target': 0.0}
         self.send_hotkey_command(command)
@@ -980,89 +980,94 @@ class KeyboardInputListener:
         
         # Subscribe to keyboard input topic
         self.keyboard_subscriber = rospy.Subscriber('/keyboard_input', String, self.keyboard_cb)
+        rospy.Subscriber('/stretch/joint_states', JointState, self.joint_states_callback)
+        self.joint_state = None
         self.key = '0'
 
         self.error_string = "--"
 
-        
+    def joint_states_callback(self, joint_state):
+        self.joint_state = joint_state
+
     def keyboard_cb(self, data):
         """Callback when keyboard input is received"""
-        key = data.data  #.lower()
+        if self.joint_state is not None:
+            key = data.data  #.lower()
 
-        self.key = key
-        
-        # Navigation controls
-        if key == 'w':
-            if self.nav_controller:
-                self.nav_controller.go_forwards()
-        elif key == 's':
-            if self.nav_controller:
-                self.nav_controller.go_backwards()
-        elif key == 'a':
-            if self.nav_controller:
-                self.nav_controller.turn_left()
-        elif key == 'd':
-            if self.nav_controller:
-                self.nav_controller.turn_right()
-        
-        # Camera controls
-        elif key == 'f':
-            if self.cam_controller:
-                self.cam_controller.tilt_up()
-        elif key == 'c':
-            if self.cam_controller:
-                self.cam_controller.tilt_down()
-        elif key == 'x':
-            if self.cam_controller:
-                self.cam_controller.turn_left()
-        elif key == 'v':
-            if self.cam_controller:
-                self.cam_controller.turn_right()
-        
-        # Camera hotkeys 
-        elif key == 'F':
-            if self.cam_controller:
-                self.cam_controller.hotkey_front()
-        elif key == 'C':
-            if self.cam_controller:
-                self.cam_controller.hotkey_back()
-        elif key == 'X':
-            if self.cam_controller:
-                self.cam_controller.hotkey_left()
-        elif key == 'V':
-            if self.cam_controller:
-                self.cam_controller.hotkey_right()
-        
-        # Arm controls
-        elif key == 'h':
-            if self.arm_controller:
-                self.arm_controller.move_up()
-        elif key == 'n':
-            if self.arm_controller:
-                self.arm_controller.move_down()
-        elif key == 'b': 
-            if self.arm_controller:
-                self.arm_controller.extend()
-        elif key == 'm':
-            if self.arm_controller:
-                self.arm_controller.retract()
-        
-        # Gripper controls
-        elif key == 'u':
-            if self.grip_controller:
-                self.grip_controller.open_gripper()
-        elif key == 'o':
-            if self.grip_controller:
-                self.grip_controller.close_gripper()
-        elif key == 'j':
-            if self.grip_controller:
-                self.grip_controller.turn_left()
-        elif key == 'l':
-            if self.grip_controller:
-                self.grip_controller.turn_right()
+            self.key = key
+            
+            # Navigation controls
+            if key == 'w':
+                if self.nav_controller:
+                    self.nav_controller.go_forwards()
+            elif key == 's':
+                if self.nav_controller:
+                    self.nav_controller.go_backwards()
+            elif key == 'a':
+                if self.nav_controller:
+                    self.nav_controller.turn_left()
+            elif key == 'd':
+                if self.nav_controller:
+                    self.nav_controller.turn_right()
+            
+            # Camera controls
+            elif key == 'f':
+                if self.cam_controller:
+                    self.cam_controller.tilt_up()
+            elif key == 'c':
+                if self.cam_controller:
+                    self.cam_controller.tilt_down()
+            elif key == 'x':
+                if self.cam_controller:
+                    self.cam_controller.turn_left()
+            elif key == 'v':
+                if self.cam_controller:
+                    self.cam_controller.turn_right()
+            
+            # Camera hotkeys 
+            elif key == 'F':
+                if self.cam_controller:
+                    self.cam_controller.hotkey_front()
+            elif key == 'C':
+                if self.cam_controller:
+                    self.cam_controller.hotkey_back()
+            elif key == 'X':
+                if self.cam_controller:
+                    self.cam_controller.hotkey_left()
+            elif key == 'V':
+                if self.cam_controller:
+                    self.cam_controller.hotkey_right()
+            
+            # Arm controls
+            elif key == 'h':
+                if self.arm_controller:
+                    self.arm_controller.move_up()
+            elif key == 'n':
+                if self.arm_controller:
+                    self.arm_controller.move_down()
+            elif key == 'b': 
+                if self.arm_controller:
+                    self.arm_controller.extend()
+            elif key == 'm':
+                if self.arm_controller:
+                    self.arm_controller.retract()
+            
+            # Gripper controls
+            elif key == 'u':
+                if self.grip_controller:
+                    self.grip_controller.open_gripper()
+            elif key == 'o':
+                if self.grip_controller:
+                    self.grip_controller.close_gripper()
+            elif key == 'j':
+                if self.grip_controller:
+                    self.grip_controller.turn_left()
+            elif key == 'l':
+                if self.grip_controller:
+                    self.grip_controller.turn_right()
 
-        #limit check
-        self.find_errors()
+            #limit check
+            self.find_errors()
         
 
 
