@@ -1,0 +1,9 @@
+build/
+log/
+install/
+*.sldprt
+*.stl
+*.SLDPRT
+Eye_Module Stand/
+
+Eye_Module Stand/eye_tube_360.SLDPRT

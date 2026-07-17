@@ -62,12 +62,12 @@ uint8_t eyePupilColor[3] = {0,250,150};
 
 
 
-void camOCb(const std_msgs::Float64MultiArray & state_msg){
+void camOCb(const std_msgs::Float64MultiArray & state_msg){  //eye info
   horiz = state_msg.data[0];
   vert = state_msg.data[1];
 }
 
-void cam1Cb(const std_msgs::String & state_msg){
+void cam1Cb(const std_msgs::String & state_msg){ //keyboard input
   incomingChar = state_msg.data[0];
 }
 
@@ -145,32 +145,32 @@ void loop() {
   //   Serial.println(incomingByte);
   // }
 
-  while (Serial.available()){
-    char incomingChar = Serial.read();
-    Serial.print("I received: ");
-    Serial.println(incomingChar);
+  // while (Serial.available()){
+  //   char incomingChar = Serial.read();
+    // Serial.print("I received: ");
+    // Serial.println(incomingChar);
 
-    switch(incomingChar) {     
-      case '2':
-        emotion = "happy";
-        Serial.println("set emotion happy");
-        break;
-      case '3':
-        emotion = "sad";
-        break;
-      case '4':
-        emotion = "confused";
-        break;
-      case '5':
-        emotion = "angry";
-        break;
-      case '1':
-        emotion = "base";
-        Serial.println("set emotion base");
-        break;      
-    }
-
+  switch(incomingChar) {     
+    case '2':
+      emotion = "happy";
+      // Serial.println("set emotion happy");
+      break;
+    case '3':
+      emotion = "sad";
+      break;
+    case '4':
+      emotion = "confused";
+      break;
+    case '5':
+      emotion = "angry";
+      break;
+    case '1':
+      emotion = "base";
+      // Serial.println("set emotion base");
+      break;      
   }
+
+  // }
 
   nh.spinOnce();
   delay(100);
@@ -235,14 +235,14 @@ void confusedEyes(int eye_index){
 
 // --------- moving pupils ---------------------------------------------------
 void drawPupils(int eye_index, int pupil_loc){
-  if (pupil_loc == 0){
+  if (pupil_loc == 4){
     for (int m = 0; m < 4; m++){
       strip.setPixelColor(sq_corner[eye_index] + upPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
       strip.setPixelColor(sq_corner[eye_index+1] + upPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
     }
   }
 
-  if (pupil_loc == 1){
+  if (pupil_loc == 3){
     for (int m = 0; m < 4; m++){
       strip.setPixelColor(sq_corner[eye_index] + slightUpPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
       strip.setPixelColor(sq_corner[eye_index+1] + slightUpPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
@@ -256,14 +256,14 @@ void drawPupils(int eye_index, int pupil_loc){
     }
   }
 
-  if (pupil_loc == 3){
+  if (pupil_loc == 1){
     for (int m = 0; m < 4; m++){
       strip.setPixelColor(sq_corner[eye_index] + slightDownPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
       strip.setPixelColor(sq_corner[eye_index+1] + slightDownPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
     }
   }
 
-  if (pupil_loc == 4){
+  if (pupil_loc == 0){
     for (int m = 0; m < 4; m++){
       strip.setPixelColor(sq_corner[eye_index] + downPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
       strip.setPixelColor(sq_corner[eye_index+1] + downPupils[m], eyePupilColor[0],eyePupilColor[1],eyePupilColor[2]);
@@ -289,5 +289,5 @@ int camTiltMap(float vert){
       return j;
     }
   }
-  return 5;
+  return 4;
 }
