@@ -23,10 +23,11 @@ int currentExpression;
 // bool emote;
 String emotion = "base";
 
-float vFdD = -0.337;
-float vDB = 0.001;
-float vBU = 0.139;
+
 float vUFu = 0.277;
+float vBU = 0.139;
+float vDB = 0.001;
+float vFdD = -0.337;
 float upper_limit = 0.415;
 float lower_limit = -1.917;
 
@@ -34,7 +35,7 @@ float horiz;
 float vert;
 
 float eye_edges[6] = {-2.75,-1.96,-1.18,-0.4,	0.4,1.18};   //{1.178097245,	0.3926990817,	-0.3926990817,	-1.178097245,	-1.963495408,	-2.748893572}
-float pupil_edges[4] = {-0.337,0.001,0.139,0.277};
+float pupil_vert_edges[4] = {-0.337,0.001,0.139,0.277};  //verticals
 
 int sq_corner[8] = {0,64,64*2,64*3,64*4,64*5,64*6,64*7};
 int eye_pos_index;
@@ -285,7 +286,7 @@ int camPanMap(float horiz){
 int camTiltMap(float vert){
   
   for(int j = 0; j < 4; j++){
-    if(vert < pupil_edges[j]){
+    if(vert < pupil_vert_edges[j]){
       return j;
     }
   }
