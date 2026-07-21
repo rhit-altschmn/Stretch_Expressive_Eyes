@@ -180,7 +180,7 @@ class GetKeyboardCommands:
 class KeyboardTeleopNode(Node):
 
     def __init__(self):
-        super().__init__('keyboard_teleop')
+        super().__init__('keyboard_input')
         
 
         self.keys = GetKeyboardCommands(self)
