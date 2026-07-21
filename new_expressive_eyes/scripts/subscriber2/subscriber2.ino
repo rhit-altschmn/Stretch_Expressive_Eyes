@@ -146,32 +146,36 @@ void loop() {
   //   Serial.println(incomingByte);
   // }
 
-  while (Serial.available()){
-    char incomingChar = Serial.read();
-    Serial.print("I received: ");
-    Serial.println(incomingChar);
+  // while (Serial.available()){
+  //   char incomingChar = Serial.read();
+  //   Serial.print("I received: ");
+  //   Serial.println(incomingChar);
 
-    switch(incomingChar) {     
-      case '2':
-        emotion = "happy";
-        Serial.println("set emotion happy");
-        break;
-      case '3':
-        emotion = "sad";
-        break;
-      case '4':
-        emotion = "confused";
-        break;
-      case '5':
-        emotion = "angry";
-        break;
-      case '1':
-        emotion = "base";
-        Serial.println("set emotion base");
-        break;      
-    }
+  //   switch(incomingChar) {     
+  //     case '2':
+  //       emotion = "happy";
+  //       Serial.println("set emotion happy");
+  //       break;
+  //     case '3':
+  //       emotion = "sad";
+  //       break;
+  //     case '4':
+  //       emotion = "confused";
+  //       break;
+  //     case '5':
+  //       emotion = "angry";
+  //       break;
+  //     case '1':
+  //       emotion = "base";
+  //       Serial.println("set emotion base");
+  //       break;      
+  //   }
 
-  }
+  // }
+
+
+
+
 
   nh.spinOnce();
   delay(100);
@@ -290,5 +294,5 @@ int camTiltMap(float vert){
       return j;
     }
   }
-  return 5;
+  return 4;
 }

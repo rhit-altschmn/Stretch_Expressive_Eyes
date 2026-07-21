@@ -88,6 +88,9 @@ class GetKeyboardCommands:
 
         if self.kb.kbhit(): # Returns True if any key pressed
             c = self.kb.getch()
+            
+            if c is not None:
+                node.publish_keyboard_input(c)
 
 
         match c:
@@ -182,14 +185,52 @@ class KeyboardTeleopNode(Node):
 
         self.keys = GetKeyboardCommands(self)
 
+        self.keyboard_pub = self.createpublisher(String, '/keyboard_input', 10)
+
         self.joint_state = JointState()
         self.robot_mode = String()
+
+        self.arm_lim = False
+        self.lift_lim = False
+        self.pan_lim = False
+        self.tilt_lim = False
+        self.wrist_lim = False  # 330 deg range
+        self.grip_lim = False
+        self.error_string = ''
+
+
         
     def joint_states_callback(self, joint_state):
         self.joint_state = joint_state
 
     def mode_callback(self, mode):
         self.robot_mode = mode.data
+
+    def publish_keyboard_input(self, key_char):
+        msg = String()
+        msg.data = key_char
+        self.keyboard_pub.publish(msg)
+        self.get_logger().info(f'Publishing Key: "{msg.data}"' )
+
+    def find_errors(self):
+        # self.error_string = '-'
+        err_list = []
+
+        if self.arm_controller.arm_lim:
+            err_list.append(" Arm Limit ")
+        if self.arm_controller.lift_lim:
+            err_list.append(" Lift Limit ")
+        if self.grip_controller.grip_lim:
+            err_list.append(" Grip Limit")
+        if self.cam_controller.pan_lim:
+            err_list.append(" Cam Pan Limit")
+        if self.cam_controller.tilt_lim:
+            err_list.append(" Cam Tilt Limit")
+
+        if not err_list:
+            self.error_string = "no range errors"
+        else:
+            self.error_string = " ".join(err_list)
 
     def send_command(self, command):
         joint_state = self.joint_state
@@ -214,7 +255,64 @@ class KeyboardTeleopNode(Node):
                     joint_value = joint_state.position[joint_index]
                     delta = command['delta']
                     new_value = joint_value + delta
+
+                # limit checks
+                if joint_name == 'joint_head_tilt':
+                    if new_value < -1.90:
+                        self.tilt_lim = True
+                    elif new_value > 0.39:  #115 deg range
+                        self.tilt_lim = True
+                    else:
+                        self.tilt_lim = False
+
+                if joint_name == 'joint_head_pan':
+                    if new_value < -1.6:
+                        self.pan_lim = True
+                    elif new_value > 6.5: #336 deg range probably radians though
+                        self.pan_lim = True
+                    else:
+                        self.pan_lim = False
+
+                if joint_name == 'joint_lift':
+                    if new_value < 0.1:
+                        self.lift_lim = True
+                    elif new_value > 1.0:
+                        self.lift_lim = True
+                    else:
+                        self.lift_lim = False
+
+                if joint_name == 'joint_arm_l0':
+                    if new_value < 0.0:
+                        self.arm_lim = True
+                    elif new_value > 0.12:
+                        self.arm_lim = True
+                    else:
+                        self.arm_lim = False
                 
+                if joint_name == 'joint_gripper_finger_left':
+                    if new_value < -0.35:
+                        self.grip_lim = True
+                    elif new_value > 0.18:  
+                        self.grip_lim = True
+                    else:
+                        self.grip_lim = False
+
+                if joint_name == 'joint_wrist_yaw':
+                    if new_value < -1.2:
+                        self.wrist_lim = True
+                    elif new_value > 4.5: 
+                        self.wrist_lim = True
+                    else:
+                        self.wrist_lim = False
+
+                if joint_name == 'joint_wrist_pitch':
+                    if new_value < -1.57:
+                        self.wrist_lim = True
+                    elif new_value > 0.57: 
+                        self.wrist_lim = True
+                    else:
+                        self.wrist_lim = False
+
                 point.positions = [new_value]
                 trajectory_goal.trajectory.points = [point]
                 self.trajectory_client.send_goal_async(trajectory_goal)
@@ -266,8 +364,17 @@ class KeyboardTeleopNode(Node):
                     trajectory_goal.trajectory.points = [point1, point2]
                     self.trajectory_client.send_goal_async(trajectory_goal)'''
 
-            else:
-                self.get_logger().warn('Keyboard teleoperation available only in position or manipulation mode')
+            self.find_errors()
+
+            if 'no' in self.error_string:
+                pass
+            else: 
+                self.get_logger().warn(f'Range: {self.error_string}')
+            
+            # else:
+            #     self.get_logger().warn('Keyboard teleoperation available only in position or manipulation mode')
+
+        
 
 
     def main(self):
