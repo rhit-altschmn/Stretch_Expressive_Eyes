@@ -4,7 +4,7 @@ import argparse as ap
 from functools import partial
 import math
 import sys
-from .keyboard_core import KBHit
+from .keyboard import KBHit
 
 import rclpy
 from rclpy.action import ActionClient
@@ -177,15 +177,15 @@ class GetKeyboardCommands:
         return command
 
 
-class KeyboardTeleopNode(Node):
+class KeyboardDriverNode(Node):
 
     def __init__(self):
-        super().__init__('keyboard_input')
+        super().__init__('keyboard_driver')
         
 
         self.keys = GetKeyboardCommands(self)
 
-        self.keyboard_pub = self.createpublisher(String, '/keyboard_input', 10)
+        self.keyboard_pub = self.create_publisher(String, '/keyboard_driver', 10)
 
         self.joint_state = JointState()
         self.robot_mode = String()
@@ -216,15 +216,15 @@ class KeyboardTeleopNode(Node):
         # self.error_string = '-'
         err_list = []
 
-        if self.arm_controller.arm_lim:
+        if self.arm_lim:
             err_list.append(" Arm Limit ")
-        if self.arm_controller.lift_lim:
+        if self.lift_lim:
             err_list.append(" Lift Limit ")
-        if self.grip_controller.grip_lim:
+        if self.grip_lim:
             err_list.append(" Grip Limit")
-        if self.cam_controller.pan_lim:
+        if self.pan_lim:
             err_list.append(" Cam Pan Limit")
-        if self.cam_controller.tilt_lim:
+        if self.tilt_lim:
             err_list.append(" Cam Tilt Limit")
 
         if not err_list:
@@ -410,7 +410,7 @@ class KeyboardTeleopNode(Node):
 def main():
     try:
         rclpy.init()
-        node = KeyboardTeleopNode()
+        node = KeyboardDriverNode()
         node.main()
     except KeyboardInterrupt:
         node.get_logger().info('interrupt received, so shutting down')
