@@ -12,24 +12,21 @@ class EyeListenerNode(Node):
         super().__init__('eye_listener')
         
         # Configure the serial port
-        self.serial_port = serial.Serial('/dev/ttyACM2', baudrate=115200, timeout=1)
+        self.serial_port = serial.Serial('/dev/ttyACM2', baudrate=57600, timeout=1)
         
         # Create the subscriber
-        self.cam_sub = rclpy.create_subscription(JointState,'/stretch/joint_states', self.joint_states_callback)
-        self.key_sub = rclpy.create_subscription(String,'/keyboard_input', self.keyboard_callback)
+        self.cam_sub = self.create_subscription(JointState,'/stretch/joint_states', self.joint_states_callback,10)
+        self.key_sub = self.create_subscription(String,'/keyboard_driver', self.keyboard_callback,5)
 
         self.key = '-'
         self.horiz = None
         self.vert = None
 
-        self.eye_loc
-        self.pupil_loc
+        self.eye_loc = 25
+        self.pupil_loc = 25
+        
+        self.ser_msgs = '-'
 
-
-        # vUFu = 0.277
-        # vBU = 0.139
-        # vDB = 0.001
-        # vFdD = -0.337
         upper_limit = 0.415
         lower_limit = -1.917
 
@@ -39,24 +36,10 @@ class EyeListenerNode(Node):
 
         
         self.eye_edges = np.array([-2.75,-1.96,-1.18,-0.4,0.4,1.18])   #{1.178097245,	0.3926990817,	-0.3926990817,	-1.178097245,	-1.963495408,	-2.748893572}
-        self.pupil_vert_edges = np.array[-0.337,0.001,0.139,0.277]  #verticals
-        self.pupil_hor_edges = [0.16, 0.32, 0.48, 0.52]  #horizontals
+        self.pupil_vert_edges = np.array([-0.337,0.001,0.139,0.277])  #verticals
+        self.pupil_hor_edges = np.array([0.16, 0.32, 0.48, 0.52])  #horizontals
 
         self.pupil_grid = np.array([[2,2,1,4,4], [2,2,3,4,4], [5,6,7,8,9], [10,10,11,12,12], [10,10,13,12,	12]])
-
-        '''void camOCb(const std_msgs::Float64MultiArray & state_msg){
-            horiz = state_msg.data[0];
-            vert = state_msg.data[1];
-            }
-
-            void cam1Cb(const std_msgs::String & state_msg){
-            incomingChar = state_msg.data[0];
-            }
-
-            ros::Subscriber<std_msgs::Float64MultiArray> sub("/head_camera_jointstate", camOCb);
-
-            ros::Subscriber<std_msgs::String> sub_1("/keyboard_input", cam1Cb);'''
-
 
 
     def joint_states_callback(self, msg):
@@ -84,7 +67,7 @@ class EyeListenerNode(Node):
             if(self.horiz < self.eye_edges[i]):
                 return i
             
-        return 6
+        return 5
 
     def camTiltMap(self):
         
@@ -92,7 +75,7 @@ class EyeListenerNode(Node):
             if self.vert < self.pupil_vert_edges[j]:
                 return j
              
-        return 5
+        return 4
     
     def find_pupil_loc(self):
         self.eye_loc = self.camPanMap()
@@ -115,6 +98,10 @@ class EyeListenerNode(Node):
         self.pupil_loc = self.pupil_grid[pup_horiz][pup_vert]
 
         self.get_logger().info(f'Pupil Locations: Horiz {pup_horiz}  Vert: {pup_vert}  Loc: {self.pupil_loc}')
+        
+        self.ser_msg = f"Eye:{self.eye_loc} Pup:{pup_vert}" 
+        self.serial_port.write((self.ser_msg + '\n').encode('utf-8'))
+        self.get_logger().info(f'Serial Msg:  {self.ser_msg}')
 
 
 
