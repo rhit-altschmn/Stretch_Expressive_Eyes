@@ -84,6 +84,7 @@ class GetKeyboardCommands:
 
     def get_command(self, node):
         command = None
+        hot_command = None
         c = None
 
         if self.kb.kbhit(): # Returns True if any key pressed
@@ -116,13 +117,17 @@ class GetKeyboardCommands:
 
             # head cam hot keys
             case 'F':
-                command = {'joint': 'joint_head_pan', 'hot': (2.0 * self.get_deltas()['rad'])}
+                command = {'joint': 'joint_head_pan', 'hot': 0.0}
+                hot_command = {'joint': 'joint_head_tilt', 'hot': 0.0}
             case 'C':
-                command = {'joint': 'joint_head_pan', 'hot': -(2.0 * self.get_deltas()['rad'])}
+                command = {'joint': 'joint_head_pan', 'hot': -2.75}
+                hot_command = {'joint': 'joint_head_tilt', 'hot': 0.0}
             case 'X':
-                command = {'joint': 'joint_head_pan', 'hot': (2.0 * self.get_deltas()['rad'])}
+                command = {'joint': 'joint_head_pan', 'hot': 1}
+                hot_command = {'joint': 'joint_head_tilt', 'hot': 0.0}
             case 'V':
-                command = {'joint': 'joint_head_pan', 'hot': -(2.0 * self.get_deltas()['rad'])}
+                command = {'joint': 'joint_head_pan', 'hot': -1}
+                hot_command = {'joint': 'joint_head_tilt', 'hot': 0.0}
 
             # lift
             case 'h':
@@ -149,21 +154,21 @@ class GetKeyboardCommands:
                 command = {'joint': 'joint_wrist_roll', 'delta': self.get_deltas()['rad']}
 
             # gripper
-            case '8':
+            case '8': #closed
                 command = {'joint': 'joint_gripper_finger_left', 'delta': -self.get_deltas()['rad']}
-            case '7':
+            case '9': #open
                 command = {'joint': 'joint_gripper_finger_left', 'delta': self.get_deltas()['rad']}
             
         
-        # if c == 'b':
-        #     node.get_logger().info('process_keyboard.py: changing to BIG step size')
-        #     self.step_size = 'big'
-        # if c == 'm':
-        #     node.get_logger().info('process_keyboard.py: changing to MEDIUM step size')
-        #     self.step_size = 'medium'
-        # if c == 's':
-        #     node.get_logger().info('process_keyboard.py: changing to SMALL step size')
-        #     self.step_size = 'small'
+        if c == '>':
+            node.get_logger().info('process_keyboard.py: changing to BIG step size')
+            self.step_size = 'big'
+        if c == '?':
+            node.get_logger().info('process_keyboard.py: changing to MEDIUM step size')
+            self.step_size = 'medium'
+        if c == '<':
+            node.get_logger().info('process_keyboard.py: changing to SMALL step size')
+            self.step_size = 'small'
         
         if c == 'q' or c == 'Q':
             node.get_logger().info('keyboard_teleop exiting...')
@@ -174,7 +179,7 @@ class GetKeyboardCommands:
 
         ####################################################
 
-        return command
+        return command,hot_command
 
 
 class KeyboardDriverNode(Node):
@@ -256,6 +261,12 @@ class KeyboardDriverNode(Node):
                     delta = command['delta']
                     new_value = joint_value + delta
 
+                elif 'hot' in command:
+                    joint_index = joint_state.name.index(joint_name)
+                    # joint_value = joint_state.position[joint_index]
+                    delta = command['hot']
+                    new_value = delta
+
                 # limit checks
                 if joint_name == 'joint_head_tilt':
                     if new_value < -1.90:
@@ -298,9 +309,9 @@ class KeyboardDriverNode(Node):
                         self.grip_lim = False
 
                 if joint_name == 'joint_wrist_yaw':
-                    if new_value < -1.2:
+                    if new_value < -1.3:
                         self.wrist_lim = True
-                    elif new_value > 4.5: 
+                    elif new_value > 4.4: 
                         self.wrist_lim = True
                     else:
                         self.wrist_lim = False
@@ -400,8 +411,10 @@ class KeyboardDriverNode(Node):
         self.keys.print_commands()
         while rclpy.ok():
             rclpy.spin_once(self)
-            command = self.keys.get_command(self)
+            command,hot_command = self.keys.get_command(self)
             self.send_command(command)
+            if hot_command is not None:
+                self.send_command(hot_command)
 
         self.keys.kb.set_normal_term()
         self.destroy_node()
